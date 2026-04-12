@@ -1,137 +1,17 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sutomotus</title>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<style>
-body { font-family: Arial; text-align: center; }
-.page { display: none; }
-.page.active { display: block; }
-.tile { width:40px;height:40px;border:1px solid #ccc;display:inline-flex;align-items:center;justify-content:center;margin:2px; }
-.correct { background:red;color:white; }
-.present { background:orange;color:white; }
-</style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
 
-<h1>Sutomotus</h1>
-
-<div id="page-auth" class="page active">
-<input id="email" placeholder="email"><br><br>
-<input id="pass" type="password" placeholder="password"><br><br>
-<button onclick="handleAuth()">Connexion</button>
-</div>
-
-<div id="page-game" class="page">
-<h2 id="user"></h2>
-<div id="grid"></div>
-</div>
+<button onclick="test()">CLICK</button>
 
 <script>
-const SB_URL = 'https://djolamqsceftrkqulldl.supabase.co';
-const SB_KEY = 'sb_publishable_rwC-DCZvgYXfRAb23izSbg_kwsiGzAt';
-
-const supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
-
-let user = null;
-let word = "MOTUS";
-let row = 0;
-let col = 1;
-let grid = Array(6).fill().map(()=>Array(word.length).fill(""));
-
-grid[0][0] = word[0];
-
-function showPage(id){
-document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
-document.getElementById(id).classList.add("active");
+function test(){
+  alert("JS OK");
 }
-
-async function handleAuth(){
-const email = document.getElementById("email").value;
-const password = document.getElementById("pass").value;
-
-if(!email || !password){ alert("remplis"); return; }
-
-let { error } = await supabaseClient.auth.signInWithPassword({email,password});
-
-if(error){
-let { data, error:err } = await supabaseClient.auth.signUp({email,password});
-if(err){ alert(err.message); return; }
-}
-
-checkUser();
-}
-
-async function checkUser(){
-const { data } = await supabaseClient.auth.getSession();
-
-if(data.session){
-user = data.session.user;
-document.getElementById("user").textContent = user.email;
-showPage("page-game");
-render();
-}
-}
-
-function render(){
-let g = document.getElementById("grid");
-g.innerHTML="";
-
-grid.forEach((r,i)=>{
-let div = document.createElement("div");
-r.forEach((l,j)=>{
-let t = document.createElement("div");
-t.className="tile";
-t.textContent=l;
-
-if(i<row){
-if(word[j]==l) t.classList.add("correct");
-else if(word.includes(l)) t.classList.add("present");
-}
-
-div.appendChild(t);
-});
-g.appendChild(div);
-});
-}
-
-window.addEventListener("keydown",e=>{
-if(!user) return;
-
-if(e.key==="Enter" && col===word.length){
-let guess = grid[row].join("");
-
-if(guess===word){
-alert("GG");
-row=0;
-grid = Array(6).fill().map(()=>Array(word.length).fill(""));
-grid[0][0]=word[0];
-}else{
-row++;
-col=1;
-grid[row][0]=word[0];
-}
-
-render();
-}
-else if(e.key==="Backspace" && col>1){
-col--;
-grid[row][col]="";
-render();
-}
-else if(/^[a-z]$/i.test(e.key) && col<word.length){
-grid[row][col]=e.key.toUpperCase();
-col++;
-render();
-}
-});
-
-checkUser();
 </script>
 
 </body>
