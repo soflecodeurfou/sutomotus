@@ -92,237 +92,187 @@
     </div>
 </div>
 
-<script>
 // --- CONFIGURATION SUPABASE ---
-    const SB_URL = 'https://djolamqsceftrkqulldl.supabase.co'; 
-    const SB_KEY = 'sb_publishable_rwC-DCZvgYXfRAb23izSbg_kwsiGzAt'; // Ta clé anon
-    const supabase = window.supabase.createClient(SB_URL, SB_KEY);
+const SB_URL = 'https://djolamqsceftrkqulldl.supabase.co'; 
+const SB_KEY = 'sb_publishable_rwC-DCZvgYXfRAb23izSbg_kwsiGzAt';
+const supabase = window.supabase.createClient(SB_URL, SB_KEY);
 
-    let user = null;
-    let currentGame = null;
-    let score = 0;
-    let G = { word: '', row: 0, col: 1, over: false, grid: [] };
-    let dico = new Set();
-    let devKeys = "";
+let user = null;
+let currentGame = { id: 'admin-session' }; // Session factice pour le mode admin
+let score = 0;
+let G = { word: '', row: 0, col: 1, over: false, grid: [] };
+let dico = new Set();
+let devKeys = "";
 
-    // 1. CHARGEMENT DU DICO (Depuis ton Vercel)
-    async function loadDico() {
-        try {
-            const r = await fetch('dico.txt');
-            const t = await r.text();
-            t.split('\n').forEach(w => { if(w.length > 4) dico.add(w.trim().toUpperCase()) });
-            console.log("Dico chargé :", dico.size);
-        } catch(e) { console.error("Fichier dico.txt absent !"); }
+// 1. CHARGEMENT DU DICO
+async function loadDico() {
+    try {
+        const r = await fetch('dico.txt');
+        const t = await r.text();
+        // On nettoie les mots (enlève les espaces et met en majuscules)
+        t.split('\n').map(w => w.trim().toUpperCase()).forEach(w => {
+            if(w.length > 3) dico.add(w);
+        });
+        console.log("Dico prêt :", dico.size, "mots");
+    } catch(e) { 
+        console.error("Erreur dico.txt ! Vérifie qu'il est bien à la racine sur GitHub/Vercel."); 
     }
-    loadDico();
+}
 
-// 2. AUTHENTIFICATION
-    async function handleAuth() {
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('pass').value;
-
-        if(!email || !password) {
-            alert("Remplis tous les champs !");
-            return;
-        }
-
-        // Tentative de connexion directe
-        const { data: signData, error: signError } = await supabase.auth.signInWithPassword({ email, password });
-        
-        if (signError) {
-            // Si l'erreur est que l'utilisateur n'existe pas, on tente l'inscription
-            console.log("Connexion échouée, tentative d'inscription...");
-            const { data: signUpData, error: signUpError } = await supabase.auth.signUp({ email, password });
-            
-            if (signUpError) {
-                alert("Erreur : " + signUpError.message);
-            } else {
-                alert("Compte créé ! Bienvenue.");
-                // Créer un profil par défaut dans ta table 'profiles'
-                await supabase.from('profiles').insert([{ 
-                    id: signUpData.user.id, 
-                    username: email.split('@')[0] 
-                }]);
-                checkUser();
-            }
-        } else {
-            console.log("Connexion réussie !");
-            checkUser();
-        }
+// 2. LOGIQUE D'ACCÈS ADMIN (Le raccourci "carotte")
+function adminAccess() {
+    const mdp = prompt("Mot de passe Admin :");
+    if (mdp === "carotte") {
+        alert("🛠️ Accès Admin activé (Mode Solo)");
+        user = { id: 'admin', email: 'admin@test.fr' };
+        document.getElementById('username-display').textContent = "Admin";
+        startSolo();
+    } else {
+        alert("Accès refusé.");
     }
+}
 
-    async function checkUser() {
-        const { data } = await supabase.auth.getSession();
-        if (data?.session) {
-            user = data.session.user;
-            // On récupère le pseudo
-            const { data: prof, error } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-            
-            if (prof) {
-                document.getElementById('username-display').textContent = prof.username;
-                showPage('page-lobby');
-                updateOnlineUsers();
-                // On cache le bouton connexion du header
-                document.getElementById('auth-zone').style.display = 'none';
-            }
-        } else {
-            // Si pas de session, on force l'affichage de la page d'accueil/auth
-            showPage('page-auth');
-        }
-    }
+// 3. AUTHENTIFICATION CLASSIQUE
+async function handleAuth() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('pass').value;
 
-    // Appeler checkUser au chargement pour voir si on est déjà loggé
-    document.addEventListener('DOMContentLoaded', () => {
-        checkUser();
-    });
+    if(!email || !password) return alert("Remplis les champs !");
 
-    async function checkUser() {
-        const { data } = await supabase.auth.getSession();
-        if (data?.session) {
-            user = data.session.user;
-            const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-            document.getElementById('username-display').textContent = prof.username;
-            showPage('page-lobby');
-            updateOnlineUsers();
-        }
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    
+    if (error) {
+        const { data: upData, error: upError } = await supabase.auth.signUp({ email, password });
+        if (upError) return alert(upError.message);
+        await supabase.from('profiles').insert([{ id: upData.user.id, username: email.split('@')[0] }]);
     }
     checkUser();
+}
 
-    // 3. MATCHMAKING (Style Chess.com)
-    async function startMatchmaking() {
-        document.getElementById('msg').textContent = "Recherche d'un adversaire...";
-        showPage('page-game'); // On montre l'arène
-        
-        // S'inscrire en file d'attente
-        await supabase.from('matchmaking').insert([{ id: user.id }]);
+async function checkUser() {
+    const { data } = await supabase.auth.getSession();
+    if (data?.session) {
+        user = data.session.user;
+        const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+        document.getElementById('username-display').textContent = prof?.username || "Joueur";
+        showPage('page-lobby');
+        updateOnlineUsers();
+    } else {
+        showPage('page-auth');
+    }
+}
 
-        // Écouter si une partie est créée avec notre ID
-        const channel = supabase.channel('matchmaking_res')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'parties' }, payload => {
-            if (payload.new.player_a === user.id || payload.new.player_b === user.id) {
-                initGame(payload.new);
+// 4. LANCEMENT DU JEU
+function startSolo() {
+    currentGame = { id: 'solo', player_a: user.id };
+    showPage('page-game');
+    document.getElementById('opp-score').style.display = 'none'; // Pas d'adversaire en solo
+    newWord();
+    startTimer();
+}
+
+function newWord() {
+    // Prend un mot au hasard ou "MOTUS" si le dico n'est pas chargé
+    const wordsArray = Array.from(dico);
+    G.word = wordsArray.length > 0 ? wordsArray[Math.floor(Math.random() * wordsArray.size)] : "MOTUS";
+    G.len = G.word.length;
+    G.row = 0; G.col = 1; G.over = false;
+    G.grid = Array(6).fill(null).map(() => Array(G.len).fill(''));
+    G.grid[0][0] = G.word[0];
+    renderGrid();
+}
+
+function renderGrid() {
+    const grid = document.getElementById('grid');
+    grid.innerHTML = '';
+    G.grid.forEach((r, i) => {
+        const rowDiv = document.createElement('div'); rowDiv.className = 'row';
+        r.forEach((letter, j) => {
+            const tile = document.createElement('div'); 
+            tile.className = 'tile';
+            tile.textContent = letter;
+            if (i < G.row) {
+                if (G.word[j] === letter) tile.classList.add('correct');
+                else if (G.word.includes(letter)) tile.classList.add('present');
+            } else if (i === G.row && j === 0 && letter === '') {
+                tile.textContent = G.word[0]; // Aide la première lettre
+                tile.classList.add('correct');
             }
-        }).subscribe();
-
-        // Tenter de pairer si quelqu'un attend déjà
-        const { data: waiting } = await supabase.from('matchmaking').select('*').neq('id', user.id).limit(1);
-        if (waiting && waiting.length > 0) {
-            const oppId = waiting[0].id;
-            const startWord = Array.from(dico)[Math.floor(Math.random() * 1000)];
-            const { data: newGame } = await supabase.from('parties').insert([{
-                player_a: oppId, player_b: user.id, mot_a: startWord, mot_b: startWord
-            }]).select().single();
-            // Nettoyer la file
-            await supabase.from('matchmaking').delete().in('id', [user.id, oppId]);
-        }
-    }
-
-    // 4. LOGIQUE DU JEU
-    function initGame(gameData) {
-        currentGame = gameData;
-        G.word = (gameData.player_a === user.id) ? gameData.mot_a : gameData.mot_b;
-        G.len = G.word.length;
-        G.row = 0; G.col = 1; G.over = false;
-        G.grid = Array(6).fill(null).map(() => Array(G.len).fill(''));
-        G.grid[0][0] = G.word[0];
-        renderGrid();
-        startTimer();
-        
-        // Synchro des scores adverses
-        supabase.channel(`game_${gameData.id}`)
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'parties' }, p => {
-            const isA = currentGame.player_a === user.id;
-            document.getElementById('opp-score').textContent = "ADVERSAIRE : " + (isA ? p.new.score_b : p.new.score_a);
-        }).subscribe();
-    }
-
-    function renderGrid() {
-        const grid = document.getElementById('grid');
-        grid.innerHTML = '';
-        G.grid.forEach((r, i) => {
-            const rowDiv = document.createElement('div'); rowDiv.className = 'row';
-            r.forEach((letter, j) => {
-                const tile = document.createElement('div'); tile.className = 'tile';
-                tile.textContent = letter;
-                if (i < G.row) {
-                    if (G.word[j] === letter) tile.classList.add('correct');
-                    else if (G.word.includes(letter)) tile.classList.add('present');
-                } else if (i === 0 && j === 0) tile.classList.add('correct');
-                rowDiv.appendChild(tile);
-            });
-            grid.appendChild(rowDiv);
+            rowDiv.appendChild(tile);
         });
-    }
-
-    window.addEventListener('keydown', async e => {
-        // SECRET "CAROTTE"
-        devKeys += e.key.toLowerCase();
-        if (devKeys.includes("carotte")) { 
-            alert("🛠️ MODE DEVELOPPEUR : Score +100"); 
-            score += 100; devKeys = ""; 
-            document.getElementById('score-val').textContent = score;
-        }
-
-        if (G.over || !currentGame) return;
-
-        if (e.key === 'Enter' && G.col === G.len) {
-            const guess = G.grid[G.row].join('');
-            if (!dico.has(guess)) { alert("Mot inconnu !"); return; }
-            
-            if (guess === G.word) {
-                score++;
-                document.getElementById('score-val').textContent = score;
-                // Update Supabase
-                const up = (currentGame.player_a === user.id) ? { score_a: score } : { score_b: score };
-                await supabase.from('parties').update(up).eq('id', currentGame.id);
-                // Prochain mot
-                G.word = Array.from(dico)[Math.floor(Math.random() * 5000)];
-                G.row = 0; G.col = 1;
-                G.grid = Array(6).fill(null).map(() => Array(G.word.length).fill(''));
-                G.grid[0][0] = G.word[0];
-            } else {
-                G.row++;
-                if (G.row === 6) { G.row = 0; G.col = 1; } // On reset la grille si échec
-                else { G.col = 1; G.grid[G.row][0] = G.word[0]; }
-            }
-            renderGrid();
-        } else if (e.key === 'Backspace' && G.col > 1) {
-            G.col--; G.grid[G.row][G.col] = ''; renderGrid();
-        } else if (/^[a-z]$/i.test(e.key) && G.col < G.len) {
-            G.grid[G.row][G.col] = e.key.toUpperCase(); G.col++; renderGrid();
-        }
+        grid.appendChild(rowDiv);
     });
+}
 
-    // HELPERS
-    function showPage(id) {
-        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-        document.getElementById(id).classList.add('active');
-    }
+// 5. ÉVÉNEMENTS CLAVIER
+window.addEventListener('keydown', async e => {
+    if (G.over || !user) return;
 
-    function startTimer() {
-        let t = 120;
-        const interval = setInterval(() => {
-            t--;
-            const m = Math.floor(t/60), s = t%60;
-            document.getElementById('timer').textContent = `${m}:${s<10?'0':''}${s}`;
-            if(t <= 0) { clearInterval(interval); G.over = true; alert("Partie terminée !"); }
-        }, 1000);
-    }
-
-    async function updateOnlineUsers() {
-        // Utilisation de Supabase Presence pour voir qui est là
-        const room = supabase.channel('online-players');
-        room.on('presence', { event: 'sync' }, () => {
-            const state = room.presenceState();
-            const list = document.getElementById('online-list');
-            list.innerHTML = Object.values(state).map(u => `<li class="online-item">${u[0].username} <span>En ligne</span></li>`).join('');
-        })
-        .subscribe(async (status) => {
-            if (status === 'SUBSCRIBED') {
-                await room.track({ username: document.getElementById('username-display').textContent });
+    if (e.key === 'Enter' && G.col === G.len) {
+        const guess = G.grid[G.row].join('');
+        
+        if (guess === G.word) {
+            score++;
+            document.getElementById('score-val').textContent = score;
+            newWord();
+        } else {
+            G.row++;
+            if (G.row === 6) { 
+                alert("Perdu ! Le mot était : " + G.word);
+                newWord(); 
+            } else {
+                G.col = 1;
+                G.grid[G.row][0] = G.word[0];
             }
-        });
+        }
+        renderGrid();
+    } else if (e.key === 'Backspace' && G.col > 1) {
+        G.col--; G.grid[G.row][G.col] = ''; renderGrid();
+    } else if (/^[a-z]$/i.test(e.key) && G.col < G.len) {
+        G.grid[G.row][G.col] = e.key.toUpperCase(); G.col++; renderGrid();
     }
-</script>
+});
+
+// INITIALISATION AU CHARGEMENT
+document.addEventListener('DOMContentLoaded', () => {
+    loadDico();
+    checkUser();
+    
+    // Ajout dynamique du bouton admin dans le header
+    const authZone = document.getElementById('auth-zone');
+    const adminBtn = document.createElement('button');
+    adminBtn.className = 'btn';
+    adminBtn.style.marginLeft = "10px";
+    adminBtn.textContent = "🛠️ Admin";
+    adminBtn.onclick = adminAccess;
+    authZone.appendChild(adminBtn);
+});
+
+function showPage(id) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+}
+
+function startTimer() {
+    let t = 120;
+    const timerEl = document.getElementById('timer');
+    const interval = setInterval(() => {
+        t--;
+        const m = Math.floor(t/60), s = t%60;
+        timerEl.textContent = `${m}:${s<10?'0':''}${s}`;
+        if(t <= 0 || G.over) { clearInterval(interval); G.over = true; alert("Fin de partie ! Score : " + score); }
+    }, 1000);
+}
+
+async function updateOnlineUsers() {
+    const room = supabase.channel('online-players');
+    room.on('presence', { event: 'sync' }, () => {
+        const state = room.presenceState();
+        const list = document.getElementById('online-list');
+        list.innerHTML = Object.values(state).map(u => `<li class="online-item">${u[0].username} <span>En ligne</span></li>`).join('');
+    }).subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') await room.track({ username: document.getElementById('username-display').textContent });
+    });
+}
 </body>
 </html>
