@@ -1,449 +1,138 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sutomotus Pro - Blitz 2vs2</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --red: #C6303A;
-      --yel: #C8960A;
-      --bg: #f7f5f2;
-      --wh: #ffffff;
-      --tx: #1a1a1a;
-      --mu: #888;
-      --bd: #e0ddd8;
-      --r: 8px;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sutomotus</title>
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Syne', sans-serif;
-      background: var(--bg);
-      color: var(--tx);
-      overflow-x: hidden;
-    }
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-    .btn {
-      padding: 12px 20px;
-      border-radius: var(--r);
-      border: 1px solid var(--bd);
-      background: var(--wh);
-      cursor: pointer;
-      font-weight: 700;
-      transition: 0.2s;
-    }
-
-    .btn:hover { background: var(--tx); color: white; }
-    .btn-primary { background: var(--red); color: white; border: none; }
-
-    header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 1rem 2rem;
-      background: var(--wh);
-      border-bottom: 1px solid var(--bd);
-    }
-
-    .logo { font-size: 24px; font-weight: 800; }
-    .logo span { color: var(--red); }
-
-    .container {
-      max-width: 800px;
-      margin: 2rem auto;
-      padding: 0 1rem;
-    }
-
-    .card {
-      background: var(--wh);
-      padding: 2rem;
-      border-radius: 12px;
-      border: 1px solid var(--bd);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    }
-
-    .page { display: none; }
-    .page.active { display: block; }
-
-    .online-list { margin-top: 1rem; list-style: none; }
-    .online-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid var(--bd); }
-
-    #grid {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-      align-items: center;
-      margin: 2rem 0;
-    }
-
-    .row { display: flex; gap: 5px; }
-    .tile {
-      width: 50px;
-      height: 50px;
-      border: 2px solid var(--bd);
-      border-radius: var(--r);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: 'DM Mono';
-      font-size: 24px;
-      font-weight: 700;
-      text-transform: uppercase;
-      background: #fff;
-    }
-    .tile.correct { background: var(--red); color: white; border-color: var(--red); }
-    .tile.present { background: var(--yel); color: white; border-color: var(--yel); }
-
-    #blitz-ui {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      background: var(--tx);
-      color: white;
-      padding: 15px;
-      border-radius: 12px;
-      margin-bottom: 1rem;
-      font-family: 'DM Mono';
-      flex-wrap: wrap;
-    }
-
-    input.btn {
-      text-align: left;
-      font-weight: 600;
-      outline: none;
-    }
-  </style>
+<style>
+body { font-family: Arial; text-align: center; }
+.page { display: none; }
+.page.active { display: block; }
+.tile { width:40px;height:40px;border:1px solid #ccc;display:inline-flex;align-items:center;justify-content:center;margin:2px; }
+.correct { background:red;color:white; }
+.present { background:orange;color:white; }
+</style>
 </head>
+
 <body>
-  <header>
-    <div class="logo">Suto<span>motus</span></div>
-    <div id="auth-zone">
-      <button class="btn" onclick="showPage('page-auth')">Connexion</button>
-    </div>
-  </header>
 
-  <div class="container">
-    <div id="page-auth" class="page card active">
-      <h2>Créer un compte / Connexion</h2>
-      <p style="margin-bottom: 20px; color: var(--mu);">Utilise ton email pour rejoindre la communauté.</p>
-      <input type="email" id="email" placeholder="Email" class="btn" style="width: 100%; margin-bottom: 10px;">
-      <input type="password" id="pass" placeholder="Mot de passe" class="btn" style="width: 100%; margin-bottom: 20px;">
-      <button class="btn btn-primary" style="width: 100%;" onclick="handleAuth()">Se connecter / S'inscrire</button>
-    </div>
+<h1>Sutomotus</h1>
 
-    <div id="page-lobby" class="page">
-      <div class="card">
-        <h2>Bonjour, <span id="username-display">Joueur</span> !</h2>
-        <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
-          <button class="btn btn-primary" onclick="startMatchmaking()">⚡ PARTIE RAPIDE (Matchmaking)</button>
-          <button class="btn" onclick="startSolo()">Mode Entraînement</button>
-        </div>
-      </div>
+<div id="page-auth" class="page active">
+<input id="email" placeholder="email"><br><br>
+<input id="pass" type="password" placeholder="password"><br><br>
+<button onclick="handleAuth()">Connexion</button>
+</div>
 
-      <div class="card" style="margin-top: 20px;">
-        <h3>Joueurs connectés</h3>
-        <ul id="online-list" class="online-list">
-          <li style="color: var(--mu);">Recherche de joueurs en ligne...</li>
-        </ul>
-      </div>
-    </div>
+<div id="page-game" class="page">
+<h2 id="user"></h2>
+<div id="grid"></div>
+</div>
 
-    <div id="page-game" class="page">
-      <div id="blitz-ui">
-        <div>TEMPS : <span id="timer">02:00</span></div>
-        <div>SCORE : <span id="score-val">0</span></div>
-        <div id="opp-score">ADVERSAIRE : 0</div>
-      </div>
-      <div id="msg" style="text-align: center; font-weight: 700; min-height: 20px;"></div>
-      <div id="grid"></div>
-      <p style="text-align: center; color: var(--mu); font-size: 12px;">Tapez au clavier pour jouer</p>
-    </div>
-  </div>
+<script>
+const SB_URL = 'https://djolamqsceftrkqulldl.supabase.co';
+const SB_KEY = 'sb_publishable_rwC-DCZvgYXfRAb23izSbg_kwsiGzAt';
 
-  <script>
-    // --- CONFIGURATION SUPABASE ---
-    const SB_URL = 'https://djolamqsceftrkqulldl.supabase.co';
-    const SB_KEY = 'sb_publishable_rwC-DCZvgYXfRAb23izSbg_kwsiGzAt';
-    const { createClient } = window.supabase;
-    const supabase = createClient(SB_URL, SB_KEY);
+const supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
 
-    let user = null;
-    let currentGame = { id: 'admin-session' };
-    let score = 0;
-    let timerInterval = null;
-    let presenceChannel = null;
+let user = null;
+let word = "MOTUS";
+let row = 0;
+let col = 1;
+let grid = Array(6).fill().map(()=>Array(word.length).fill(""));
 
-    let G = {
-      word: '',
-      row: 0,
-      col: 1,
-      over: false,
-      grid: [],
-      len: 0
-    };
+grid[0][0] = word[0];
 
-    const dico = new Set();
+function showPage(id){
+document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+document.getElementById(id).classList.add("active");
+}
 
-    // 1. CHARGEMENT DU DICO
-    async function loadDico() {
-      try {
-        const r = await fetch('dico.txt', { cache: 'no-store' });
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        const t = await r.text();
-        t.split('\n')
-          .map(w => w.trim().toUpperCase())
-          .filter(w => w.length > 3)
-          .forEach(w => dico.add(w));
-        console.log('Dico prêt :', dico.size, 'mots');
-      } catch (e) {
-        console.error("Erreur chargement dico.txt :", e);
-        // Fallback pour que le jeu reste jouable
-        ['MOTUS', 'BONJOUR', 'FENETRE', 'ORDINATEUR', 'JAVASCRIPT'].forEach(w => dico.add(w));
-      }
-    }
+async function handleAuth(){
+const email = document.getElementById("email").value;
+const password = document.getElementById("pass").value;
 
-    // 2. LOGIQUE D'ACCÈS ADMIN
-    function adminAccess() {
-      const mdp = prompt('Mot de passe Admin :');
-      if (mdp === 'carotte') {
-        alert('🛠️ Accès Admin activé (Mode Solo)');
-        user = { id: 'admin', email: 'admin@test.fr' };
-        document.getElementById('username-display').textContent = 'Admin';
-        showPage('page-lobby');
-        startSolo();
-      } else {
-        alert('Accès refusé.');
-      }
-    }
+if(!email || !password){ alert("remplis"); return; }
 
-    // 3. AUTHENTIFICATION
-    async function handleAuth() {
-      const email = document.getElementById('email').value.trim();
-      const password = document.getElementById('pass').value;
+let { error } = await supabaseClient.auth.signInWithPassword({email,password});
 
-      if (!email || !password) return alert('Remplis les champs !');
+if(error){
+let { data, error:err } = await supabaseClient.auth.signUp({email,password});
+if(err){ alert(err.message); return; }
+}
 
-      // D'abord on tente la connexion
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+checkUser();
+}
 
-      if (signInError) {
-        // Si la connexion échoue, on tente l'inscription
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({ email, password });
-        if (signUpError) return alert(signUpError.message);
+async function checkUser(){
+const { data } = await supabaseClient.auth.getSession();
 
-        const newUser = signUpData?.user;
-        if (newUser) {
-          const username = email.split('@')[0];
-          await supabase.from('profiles').upsert([
-            { id: newUser.id, username }
-          ]);
-        }
-      }
+if(data.session){
+user = data.session.user;
+document.getElementById("user").textContent = user.email;
+showPage("page-game");
+render();
+}
+}
 
-      await checkUser();
-    }
+function render(){
+let g = document.getElementById("grid");
+g.innerHTML="";
 
-    async function checkUser() {
-      const { data } = await supabase.auth.getSession();
-      if (data?.session) {
-        user = data.session.user;
+grid.forEach((r,i)=>{
+let div = document.createElement("div");
+r.forEach((l,j)=>{
+let t = document.createElement("div");
+t.className="tile";
+t.textContent=l;
 
-        const { data: prof } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .maybeSingle();
+if(i<row){
+if(word[j]==l) t.classList.add("correct");
+else if(word.includes(l)) t.classList.add("present");
+}
 
-        document.getElementById('username-display').textContent = prof?.username || user.email?.split('@')[0] || 'Joueur';
-        showPage('page-lobby');
-        await updateOnlineUsers();
-      } else {
-        showPage('page-auth');
-      }
-    }
+div.appendChild(t);
+});
+g.appendChild(div);
+});
+}
 
-    // 4. LANCEMENT DU JEU
-    function startSolo() {
-      if (!user) return alert('Connecte-toi d’abord.');
+window.addEventListener("keydown",e=>{
+if(!user) return;
 
-      currentGame = { id: 'solo', player_a: user.id };
-      score = 0;
-      document.getElementById('score-val').textContent = score;
-      document.getElementById('opp-score').style.display = 'none';
-      document.getElementById('msg').textContent = '';
+if(e.key==="Enter" && col===word.length){
+let guess = grid[row].join("");
 
-      showPage('page-game');
-      newWord();
-      startTimer();
-    }
+if(guess===word){
+alert("GG");
+row=0;
+grid = Array(6).fill().map(()=>Array(word.length).fill(""));
+grid[0][0]=word[0];
+}else{
+row++;
+col=1;
+grid[row][0]=word[0];
+}
 
-    function startMatchmaking() {
-      alert('Le matchmaking n’est pas encore branché. Pour l’instant, lance le mode entraînement.');
-      // Tu peux remplacer ça plus tard par la logique 2v2
-    }
+render();
+}
+else if(e.key==="Backspace" && col>1){
+col--;
+grid[row][col]="";
+render();
+}
+else if(/^[a-z]$/i.test(e.key) && col<word.length){
+grid[row][col]=e.key.toUpperCase();
+col++;
+render();
+}
+});
 
-    function newWord() {
-      const wordsArray = Array.from(dico);
-      const fallback = 'MOTUS';
-      G.word = wordsArray.length > 0 ? wordsArray[Math.floor(Math.random() * wordsArray.length)] : fallback;
-      G.len = G.word.length;
-      G.row = 0;
-      G.col = 1;
-      G.over = false;
-      G.grid = Array.from({ length: 6 }, () => Array(G.len).fill(''));
-      G.grid[0][0] = G.word[0];
-      renderGrid();
-    }
+checkUser();
+</script>
 
-    function renderGrid() {
-      const grid = document.getElementById('grid');
-      grid.innerHTML = '';
-
-      G.grid.forEach((r, i) => {
-        const rowDiv = document.createElement('div');
-        rowDiv.className = 'row';
-
-        r.forEach((letter, j) => {
-          const tile = document.createElement('div');
-          tile.className = 'tile';
-          tile.textContent = letter;
-
-          if (i < G.row) {
-            if (G.word[j] === letter) tile.classList.add('correct');
-            else if (G.word.includes(letter)) tile.classList.add('present');
-          } else if (i === G.row && j === 0 && letter === '') {
-            tile.textContent = G.word[0];
-            tile.classList.add('correct');
-          }
-
-          rowDiv.appendChild(tile);
-        });
-
-        grid.appendChild(rowDiv);
-      });
-    }
-
-    function endGame(message) {
-      G.over = true;
-      clearInterval(timerInterval);
-      timerInterval = null;
-      document.getElementById('msg').textContent = message;
-    }
-
-    // 5. ÉVÉNEMENTS CLAVIER
-    window.addEventListener('keydown', async e => {
-      if (G.over || !user || document.activeElement?.tagName === 'INPUT') return;
-
-      if (e.key === 'Enter' && G.col === G.len) {
-        const guess = G.grid[G.row].join('');
-
-        if (guess === G.word) {
-          score++;
-          document.getElementById('score-val').textContent = score;
-          document.getElementById('msg').textContent = 'Bravo !';
-          newWord();
-        } else {
-          G.row++;
-          if (G.row === 6) {
-            alert('Perdu ! Le mot était : ' + G.word);
-            newWord();
-          } else {
-            G.col = 1;
-            G.grid[G.row][0] = G.word[0];
-          }
-        }
-
-        renderGrid();
-      } else if (e.key === 'Backspace' && G.col > 1) {
-        G.col--;
-        G.grid[G.row][G.col] = '';
-        renderGrid();
-      } else if (/^[a-z]$/i.test(e.key) && G.col < G.len) {
-        G.grid[G.row][G.col] = e.key.toUpperCase();
-        G.col++;
-        renderGrid();
-      }
-    });
-
-    // 6. TIMER
-    function startTimer() {
-      if (timerInterval) clearInterval(timerInterval);
-
-      let t = 120;
-      const timerEl = document.getElementById('timer');
-      timerEl.textContent = '02:00';
-
-      timerInterval = setInterval(() => {
-        t--;
-        const m = Math.floor(t / 60);
-        const s = t % 60;
-        timerEl.textContent = `${m}:${s < 10 ? '0' : ''}${s}`;
-
-        if (t <= 0) {
-          clearInterval(timerInterval);
-          timerInterval = null;
-          endGame('Fin de partie ! Score : ' + score);
-          alert('Fin de partie ! Score : ' + score);
-        }
-      }, 1000);
-    }
-
-    // 7. PRESENCE / JOUEURS CONNECTES
-    async function updateOnlineUsers() {
-      if (presenceChannel) {
-        await supabase.removeChannel(presenceChannel);
-        presenceChannel = null;
-      }
-
-      presenceChannel = supabase.channel('online-players', {
-        config: { presence: { key: user.id } }
-      });
-
-      presenceChannel.on('presence', { event: 'sync' }, () => {
-        const state = presenceChannel.presenceState();
-        const list = document.getElementById('online-list');
-        const entries = Object.values(state)
-          .flat()
-          .map(u => `<li class="online-item">${u.username || 'Joueur'} <span>En ligne</span></li>`);
-
-        list.innerHTML = entries.length
-          ? entries.join('')
-          : '<li style="color: var(--mu);">Aucun joueur visible pour le moment.</li>';
-      });
-
-      presenceChannel.subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          await presenceChannel.track({
-            username: document.getElementById('username-display').textContent,
-            online_at: new Date().toISOString()
-          });
-        }
-      });
-    }
-
-    function showPage(id) {
-      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-      const page = document.getElementById(id);
-      if (page) page.classList.add('active');
-    }
-
-    // INITIALISATION
-    document.addEventListener('DOMContentLoaded', async () => {
-      await loadDico();
-      await checkUser();
-
-      // Bouton admin
-      const authZone = document.getElementById('auth-zone');
-      const adminBtn = document.createElement('button');
-      adminBtn.className = 'btn';
-      adminBtn.style.marginLeft = '10px';
-      adminBtn.textContent = '🛠️ Admin';
-      adminBtn.onclick = adminAccess;
-      authZone.appendChild(adminBtn);
-    });
-  </script>
 </body>
 </html>
