@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sutomotus</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --red: #C6303A;
+    --red-light: #f5e0e1;
+    --yellow: #D4A017;
+    --yellow-light: #fdf4d8;
+    --grey: #3a3a3a;
+    --grey-light: #ebebeb;
+    --bg: #f7f5f2;
+    --white: #ffffff;
+    --text: #1a1a1a;
+    --text-muted: #888;
+    --border: #e0ddd8;
+    --radius: 6px;
+    --tile: 54px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Syne', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  /* HEADER */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.5rem;
+    height: 56px;
+    border-bottom: 1px solid var(--border);
+    background: var(--white);
+  }
+  .logo {
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+  .logo span { color: var(--red); }
+  .nav {
+    display: flex;
+    gap: 4px;
+  }
+  .nav-btn {
+    padding: 6px 14px;
+    border-radius: var(--radius);
+    border: 1px solid transparent;
+    background: none;
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .nav-btn:hover { background: var(--bg); color: var(--text); }
+  .nav-btn.active { background: var(--text); color: var(--white); }
+
+  /* LAYOUT */
+  .page { display: none; padding: 2rem 1rem; max-width: 560px; margin: 0 auto; }
+  .page.active { display: block; }
+
+  /* GAME */
+  #msg {
+    min-height: 36px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+    font-family: 'DM Mono', monospace;
+  }
+  #msg.win { color: var(--red); }
+  #msg.lose { color: var(--grey); }
+
+  #grid {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+  .row { display: flex; gap: 6px; }
+  .tile {
+    width: var(--tile);
+    height: var(--tile);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--text);
+    text-transform: uppercase;
+    transition: border-color .1s, background .2s;
+    user-select: none;
+  }
+  .tile.filled { border-color: #aaa; }
+  .tile.correct { background: var(--red); border-color: var(--red); color: #fff; }
+  .tile.present { background: var(--yellow); border-color: var(--yellow); color: #fff; }
+  .tile.absent  { background: var(--grey-light); border-color: var(--grey-light); color: #888; }
+  .tile.first   { background: var(--red); border-color: var(--red); color: #fff; }
+  .tile.pop { animation: pop .12s ease; }
+  @keyframes pop { 0%{transform:scale(1)} 50%{transform:scale(1.08)} 100%{transform:scale(1)} }
+  .tile.shake { animation: shake .3s ease; }
+  @keyframes shake {
+    0%,100%{transform:translateX(0)}
+    20%,60%{transform:translateX(-4px)}
+    40%,80%{transform:translateX(4px)}
+  }
+
+  /* KEYBOARD */
+  #keyboard { display: flex; flex-direction: column; gap: 6px; align-items: center; margin-bottom: 1.5rem; }
+  .kb-row { display: flex; gap: 5px; }
+  .key {
+    height: 44px;
+    min-width: 34px;
+    padding: 0 6px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--white);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background .1s, color .1s, border-color .1s;
+    user-select: none;
+  }
+  .key:active { transform: scale(0.96); }
+  .key.wide { min-width: 56px; font-size: 11px; font-family: 'Syne', sans-serif; }
+  .key.correct { background: var(--red); border-color: var(--red); color: #fff; }
+  .key.present { background: var(--yellow); border-color: var(--yellow); color: #fff; }
+  .key.absent  { background: var(--grey-light); border-color: var(--grey-light); color: #aaa; }
+
+  .game-actions {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+  }
+  .btn {
+    padding: 8px 20px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--white);
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--text);
+    transition: background .1s;
+  }
+  .btn:hover { background: var(--bg); }
+  .btn.primary { background: var(--text); color: var(--white); border-color: var(--text); }
+  .btn.primary:hover { opacity: 0.85; }
+
+  /* WORD LENGTH SELECTOR */
+  .length-selector {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 1.5rem;
+  }
+  .len-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--white);
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    color: var(--text-muted);
+    display: flex; align-items: center; justify-content: center;
+    transition: all .1s;
+  }
+  .len-btn.active { background: var(--text); color: var(--white); border-color: var(--text); }
+  .len-label { font-size: 12px; color: var(--text-muted); margin-right: 6px; }
+
+  /* STATS */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 2rem;
+  }
+  .stat-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 8px;
+    text-align: center;
+  }
+  .stat-num {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--text);
+    line-height: 1;
+  }
+  .stat-num.red { color: var(--red); }
+  .stat-lbl {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+
+  .section-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+  }
+
+  /* DISTRIBUTION */
+  .dist-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .dist-n { width: 14px; font-family: 'DM Mono', monospace; font-size: 13px; color: var(--text-muted); text-align: right; flex-shrink: 0; }
+  .dist-bar-wrap { flex: 1; height: 22px; background: var(--bg); border-radius: 3px; overflow: hidden; }
+  .dist-bar {
+    height: 100%;
+    background: var(--grey-light);
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 8px;
+    min-width: 22px;
+    transition: width .4s ease;
+  }
+  .dist-bar.highlight { background: var(--red); }
+  .dist-bar span { font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500; color: #fff; }
+  .dist-bar:not(.highlight) span { color: var(--text-muted); }
+
+  /* LEADERBOARD */
+  .lb-wrap {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .lb-head {
+    display: grid;
+    grid-template-columns: 36px 1fr 52px 60px 52px;
+    gap: 8px;
+    padding: 10px 14px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text-muted);
+  }
+  .lb-row {
+    display: grid;
+    grid-template-columns: 36px 1fr 52px 60px 52px;
+    gap: 8px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    align-items: center;
+    transition: background .1s;
+  }
+  .lb-row:last-child { border-bottom: none; }
+  .lb-row:hover { background: var(--bg); }
+  .lb-row.me { background: #fdf0f0; }
+  .lb-row.me:hover { background: #fbe6e6; }
+  .rank { font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 500; color: var(--text-muted); text-align: center; }
+  .rank.gold { color: #B8860B; font-weight: 700; }
+  .rank.silver { color: #888; font-weight: 700; }
+  .rank.bronze { color: #a05020; font-weight: 700; }
+  .player-cell { display: flex; align-items: center; gap: 8px; }
+  .avatar {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--bg); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; color: var(--text-muted);
+    flex-shrink: 0;
+  }
+  .avatar.me { background: var(--red-light); border-color: var(--red); color: var(--red); }
+  .player-name { font-weight: 600; font-size: 13px; }
+  .you-badge {
+    font-size: 10px;
+    font-weight: 700;
+    background: var(--red-light);
+    color: var(--red);
+    padding: 2px 7px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .wr { font-family: 'DM Mono', monospace; font-weight: 500; text-align: center; }
+  .wr.high { color: var(--red); font-weight: 700; }
+  .games-cell { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text-muted); text-align: center; }
+  .avg-cell { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text-muted); text-align: center; }
+
+  /* RESPONSIVE */
+  @media (max-width: 400px) {
+    :root { --tile: 46px; }
+    .stat-grid { grid-template-columns: repeat(2, 1fr); }
+    .lb-head, .lb-row { grid-template-columns: 28px 1fr 44px 52px 44px; font-size: 11px; padding: 10px 10px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">suto<span>motus</span></div>
+  <nav class="nav">
+    <button class="nav-btn active" onclick="switchPage('game')">Jouer</button>
+    <button class="nav-btn" onclick="switchPage('stats')">Stats</button>
+    <button class="nav-btn" onclick="switchPage('ranking')">Classement</button>
+  </nav>
+</header>
+
+<!-- PAGE JEU -->
+<div class="page active" id="page-game">
+  <div class="length-selector">
+    <span class="len-label">Lettres</span>
+    <button class="len-btn active" id="len5" onclick="setLength(5)">5</button>
+    <button class="len-btn" id="len6" onclick="setLength(6)">6</button>
+    <button class="len-btn" id="len7" onclick="setLength(7)">7</button>
+  </div>
+  <div id="msg"></div>
+  <div id="grid"></div>
+  <div id="keyboard"></div>
+  <div class="game-actions">
+    <button class="btn" onclick="newGame()">Nouveau mot</button>
+  </div>
+</div>
+
+<!-- PAGE STATS -->
+<div class="page" id="page-stats">
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-num" id="s-played">0</div>
+      <div class="stat-lbl">Parties</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num red" id="s-wr">—</div>
+      <div class="stat-lbl">Victoires</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="s-streak">0</div>
+      <div class="stat-lbl">Série</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="s-best">0</div>
+      <div class="stat-lbl">Record</div>
+    </div>
+  </div>
+  <div class="section-title">Distribution des essais</div>
+  <div id="dist" style="margin-bottom:2rem"></div>
+  <div class="section-title">Par longueur</div>
+  <div id="by-length" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px"></div>
+</div>
+
+<!-- PAGE CLASSEMENT -->
+<div class="page" id="page-ranking">
+  <div style="margin-bottom:1.5rem">
+    <div class="section-title">Classement global</div>
+    <div class="lb-wrap">
+      <div class="lb-head">
+        <div style="text-align:center">#</div>
+        <div>Joueur</div>
+        <div style="text-align:center">Parties</div>
+        <div style="text-align:center">V%</div>
+        <div style="text-align:center">Moy.</div>
+      </div>
+      <div id="lb-body"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── WORD DATABASE ───────────────────────────────────────────────────────────
+const WORDS = {
+  5: ["ABCES","ABIME","ABORD","ACIER","ADIEU","AGILE","AIGLE","ALBUM","ALLEE","ALPES","AMBRE","AMOUR","ANCRE","ANGLE","ANIME","ANODE","AORTE","ARBRE","ARENE","ARGOT","ARMER","AROME","ASTER","ATLAS","ATOME","AUDIO","AVION","AVOIR","BAGUE","BALLE","BARIL","BARON","BARRE","BELLE","BENNE","BETON","BIJOU","BISON","BLANC","BLASE","BLOND","BOCAL","BOITE","BOMBE","BORDE","BOSSE","BOUEE","BOULE","BOURG","BOXER","BRAVE","BRIDE","BRISE","BRUME","BULLE","CABLE","CACAO","CADET","CADRE","CALME","CANNE","CARAT","CARPE","CARRE","CARTE","CAUSE","CELLE","CERNE","CHAMP","CHAOS","CHAUD","CHIEN","CHOIX","CIBLE","CIDRE","CLAIR","CLONE","COBRA","CODER","COEUR","COLLE","COMTE","CORDE","CORPS","COUDE","COUPE","COURT","CRANE","CREME","CREPE","CRIME","CROSS","CUIRE","CULOT","CYCLE","DAGUE","DANSE","DELTA","DENSE","DEPOT","DETTE","DOIGT","DOUCE","DOUTE","DROIT","DRONE","DUVET","ECLAT","ECOLE","ECRAN","EFFET","ELEVE","ENGIN","ENTRE","ENVOI","EPICE","EPINE","ETAGE","ETAPE","ETUDE","EVEIL","EXACT","EXCES","EXILE","EXTRA","FABLE","FARCE","FAUNE","FAUTE","FENTE","FIBRE","FICHE","FIGUE","FILET","FILLE","FLEUR","FLORE","FLUTE","FOLIE","FONCE","FORCE","FORGE","FORME","FORTE","FOSSE","FOYER","FRANC","FREIN","FRERE","FROID","FRUIT","FUSEE","FUTUR","GARDE","GENRE","GESTE","GILET","GIVRE","GLOBE","GOMME","GRACE","GRAIN","GREVE","GRIOT","GRISE","GUIDE","GUISE","HABIT","HACHE","HALTE","HARPE","HERSE","HIVER","HOMME","HUILE","IMAGE","INDEX","JOKER","JOUER","JOUET","JOULE","LANCE","LASER","LATTE","LIEGE","LIGUE","LIMON","LISTE","LITRE","LIVRE","LOGER","LONGE","LOUPE","LUNDI","MAGIE","MALIN","MALLE","MARNE","MASSE","MATCH","MECHE","MELEE","MELON","MERCI","MESSE","METAL","MIXER","MONDE","MONTE","MORAL","MORSE","MORTE","MOTIF","MOULE","MOYEN","MULET","MYOPE","NAPPE","NICHE","NOEUD","NORME","NOYER","NUAGE","NYLON","OBESE","OLIVE","ONGLE","OPALE","ORAGE","ORDRE","ORGUE","OUTIL","OZONE","OXIDE","PAIRE","PAUME","PAUSE","PENTE","PERLE","PHASE","PISTE","PLAGE","PLOMB","PLUME","POIDS","POILS","POKER","POING","POINT","POMME","PORTE","POSER","POSTE","PRISE","PROSE","PRUNE","PURGE","QUEUE","RADAR","RAFLE","REINE","RELAX","REPAS","REPLI","REVER","REVUE","RIDER","RINCE","RIVET","ROBOT","ROCHE","ROMAN","RONCE","RONDE","ROTOR","ROUGE","ROUTE","RUCHE","RUGBY","SABLE","SABRE","SALLE","SAVON","SCENE","SCORE","SCOUT","SECHE","SELLE","SERRE","SIEGE","SIGLE","SIGNE","SOBRE","SOCLE","SOEUR","SONAR","SONDE","SORTE","SOUCI","SOUPE","SPORT","STADE","STAGE","STELE","SUCRE","SUITE","SUPER","TABLE","TACHE","TALON","TAPIS","TARIF","TERME","TIERS","TIGER","TITRE","TOILE","TONNE","TOTEM","TRACE","TRAIN","TRAIT","TRAME","TREVE","TRIER","TRONE","TRUST","TUILE","TURBO","ULTRA","UNION","USINE","VAGUE","VALVE","VEINE","VERRE","VERSO","VERTU","VESTE","VITRE","VIVRE","VOILE","WAGON","XENON","YACHT","ZESTE"],
+  6: ["ABAQUE","ABUSER","ACTION","AGENCE","AGENDA","AGITER","ALCOVE","ALERTE","ALLURE","AMORCE","AMUSER","ANIMAL","ANNEAU","APERCU","APLOMB","ARBORE","ARDEUR","ARGILE","ARMURE","ARRETE","ARTERE","ASPECT","ASSAUT","ASSISE","ASTUCE","ATTIRE","AUTEUR","AVENUE","AVOCAT","BALCON","BALISE","BAOBAB","BARQUE","BASSIN","BATEAU","BEAUTE","BELIER","BESOIN","BILLET","BLESSE","BONNET","BORDEL","BOUGER","BOUTON","BRAISE","BRETON","BRIDGE","BROCHE","BRODER","BRULER","BUREAU","CABANE","CAHIER","CALMER","CANARD","CARTON","CASINO","CASQUE","CASTOR","CAVALE","CAVITE","CENTRE","CERCLE","CERISE","CHAINE","CHASSE","CHAUVE","CHEMIN","CHOEUR","CINEMA","CIRQUE","CLAIRE","CLASSE","CLIENT","CLOCHE","COFFRE","COLERE","COMBAT","COMETE","COMPAS","COMPTE","CONTRE","COQUIN","CORNEE","CORNET","COSMOS","COUCHE","COULER","COURIR","COUSIN","CRECHE","CREOLE","CROIRE","CROUTE","CYPRES","DECRET","DEHORS","DEMAIN","DEPUTE","DESERT","DESSIN","DETAIL","DETOUR","DEVISE","DIESEL","DIRECT","DISQUE","DRAGON","ECLAIR","ECRIRE","EFFORT","EGLISE","ELEVER","EMPIRE","ENCART","ENCORE","ENFANT","ENORME","ENTIER","EPOQUE","EQUIPE","ESPRIT","ETABLE","ETALER","ETROIT","EVADER","EXAMEN","EXIGER","FAILLE","FATALE","FAUCON","FAVORI","FERMER","FIEVRE","FIGURE","FILTRE","FINALE","FLACON","FLECHE","FONDER","FONDRE","FORGER","FORMAT","FOURMI","FRAISE","FUSION","GAGNER","GALERE","GALOPE","GARAGE","GARDER","GAUCHE","GIRAFE","GLOBAL","GLOIRE","GRIFFE","GRILLE","GRIMPE","GROTTE","GROUPE","GUERRE","GUIDER","HAMEAU","HASARD","HERBES","HUMEUR","HUMIDE","HURLER","IMMUNE","IMPACT","IRONIE","JARDIN","JUNGLE","LAISSE","LANCER","LEGERE","LEVIER","LEZARD","LIASSE","LUCIDE","MARBRE","MARCHE","MARIER","MARQUE","MASQUE","MENTAL","MESURE","METIER","MIRAGE","MIROIR","MOBILE","MODELE","MODULE","MONTRE","MOQUER","MOTEUR","MOUCHE","MOULIN","MOUTON","MUSCLE","NATION","NATURE","NOMMER","NOTICE","NOTION","NOUGAT","OFFRIR","OPTION","ORANGE","ORBITE","ORGANE","OUVRIR","PALIER","PANIER","PARDON","PASSER","PATRON","PEIGNE","PEPITE","PERCER","PERMIS","PEUPLE","PIMENT","PLANTE","PLAQUE","PLASMA","POISON","POMPER","PORTER","POULET","POUDRE","POULIE","PRESSE","PRINCE","PRISON","PUZZLE","PYTHON","RADEAU","RAISIN","RASOIR","REBOND","RECRUE","REFUGE","REGARD","RELEVE","REMEDE","RENARD","RENDRE","RESTER","RETOUR","REVEIL","RIDEAU","RISQUE","ROSEAU","ROULER","SABRER","SAISON","SALUER","SAUMON","SAVEUR","SCELLE","SOLDAT","SOLEIL","SOMMET","SONDER","SORTIR","SOUPLE","SPRINT","STRATE","STUDIO","SURNOM","TALENT","TAMPON","TANDEM","TARTRE","TENDRE","TENNIS","THRONE","TOUCHE","TREIZE","TRISTE","TROMPE","TUYAUX","ULTIME","UNIQUE","URBAIN","VELOUR","VENDRE","VENTRE","VIANDE","VIOLET","VISION","VISITE","VISUEL","VIVANT","VOLCAN","VOYAGE","YAOURT"],
+  7: ["ABEILLE","ABSENCE","ACCEDER","ACHETER","ACTIVER","ADAPTER","ADMIRER","AJOUTER","ALIGNER","ALLEGRE","ALLUMER","AMARRER","AMELIOR","AMORCER","ANALYSE","ANNULER","ANTENNE","APAISER","APPELER","ARBORER","ARGENTE","ARTISAN","ASPIRER","ASSURER","ATTAQUE","ATTIRER","AUREOLE","AVANCER","AVEUGLE","BACILLE","BALANCE","BANQUET","BARRAGE","BATISSE","BAVARDE","BIZARRE","BLESSER","BLINDER","BONHEUR","BOUCHER","BOUQUET","BOURDON","BRANCHE","BRIQUET","CADENAS","CALIBRE","CAPABLE","CAPITAL","CAPTURE","CARBONE","CARESSE","CASSURE","CELESTE","CHAGRIN","CHALEUR","CHAMBRE","CHARBON","CHATEAU","CHEMISE","CHOISIR","CITOYEN","CLEMENT","CLONAGE","CLOTURE","COLONNE","COMBINE","COMPLET","CONCEPT","CONCERT","CONDUIT","CONFIER","CONSEIL","CONTACT","CONTENU","CONTOUR","COUCHER","COURAGE","COUVRIR","CREUSER","CULTURE","CUMULER","CURIEUX","DECIDES","DECORER","DEFENSE","DEMANDE","DEPENSE","DERNIER","DESSERT","DETENTE","DEVENIR","DEVINER","DIGITAL","DIRIGER","DISCRET","DIVISER","DOMAINE","DOSSIER","DOUBLER","DRESSER","ECLIPSE","ECRASER","EMERGER","ENCHANT","ENDURER","ENGAGER","ENTOURE","ENVOYER","EPARGNE","EPREUVE","ETABLIR","ETRANGE","EVALUER","EVOLUER","EXEMPLE","EXERCER","EXISTER","FAMILLE","FATIGUE","FERTILE","FICHIER","FINESSE","FLAMBER","FLECHIR","FRACTUR","GENERAL","GRANDIR","GRATUIT","HABILLE","HARMONI","HONNETE","HORIZON","HYGIENE","IMAGINER","IMPOSER","INCLURE","INFECTE","INTENSE","INVITER","LARGEUR","LIQUIDE","MACHINE","MARCHER","MASSAGE","MATIERE","MECHANT","MEDECIN","MEMOIRE","MENAGER","MESSAGE","MIRACLE","MODELER","MONTRER","MULTIPLE","NERVEUX","NOURRIR","NOUVEAU","OUBLIER","PALMIER","PARFAIT","PARTAGE","PASSION","PAYSAGE","PEINDRE","PENCHER","PERCHER","PERDANT","PERIODE","PLANETE","PLONGER","POLAIRE","PORTAIL","POUVOIR","PRENDRE","PRESENT","PROUVER","PRUDENT","RAPPORT","REALISE","RECEVOIR","RECOLTE","REDUIRE","REJETER","REMPLIR","RENFORT","REPARER","RESISTE","RESSORT","RETENIR","REUNION","RICHESSE","RISQUER","ROBUSTE","ROUTINE","RUPTURE","SCIENCE","SECOURS","SECTEUR","SENTIER","SERVICE","SINUEUX","SOUTIEN","SPECTRE","SPIRALE","STOCKER","SYSTEME","TABLEAU","TENSION","TERMINER","TERREUR","TEXTURE","TOUCHER","TRAQUER","TRAVAIL","TRESORS","TROUBLE","TURBINE","UNIVERS","URGENCE","VAINCRE","VEGETAL","VERSION","VICTOIRE","VILLAGE","VIOLENT","VISIBLE","VOULOIR","VOYAGER","ZEPHYRE"]
+};
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let state = {
+  word: '',
+  len: 5,
+  guesses: [],
+  currentRow: 0,
+  currentCol: 0,
+  gameOver: false,
+  keyStates: {},
+  stats: loadStats()
+};
+
+function loadStats() {
+  try {
+    const s = JSON.parse(localStorage.getItem('sutomotus_stats') || 'null');
+    if (s) return s;
+  } catch(e) {}
+  return { played: 0, wins: 0, streak: 0, best: 0, dist: {1:0,2:0,3:0,4:0,5:0,6:0}, byLen: {5:{p:0,w:0},6:{p:0,w:0},7:{p:0,w:0}} };
+}
+function saveStats() {
+  try { localStorage.setItem('sutomotus_stats', JSON.stringify(state.stats)); } catch(e) {}
+}
+
+// ─── GAME LOGIC ──────────────────────────────────────────────────────────────
+function setLength(n) {
+  state.len = n;
+  [5,6,7].forEach(x => document.getElementById('len'+x).classList.toggle('active', x===n));
+  newGame();
+}
+
+function newGame() {
+  const pool = WORDS[state.len];
+  state.word = pool[Math.floor(Math.random() * pool.length)];
+  state.guesses = Array(6).fill(null).map(() => Array(state.len).fill(''));
+  state.currentRow = 0;
+  state.currentCol = 0;
+  state.gameOver = false;
+  state.keyStates = {};
+  const msg = document.getElementById('msg');
+  msg.textContent = '';
+  msg.className = '';
+  renderGrid();
+  renderKeyboard();
+}
+
+function getTileStates(row) {
+  const g = state.guesses[row];
+  const w = state.word.split('');
+  const res = Array(state.len).fill('absent');
+  const used = Array(state.len).fill(false);
+  for (let i = 0; i < state.len; i++) if (g[i] === w[i]) { res[i] = 'correct'; used[i] = true; }
+  for (let i = 0; i < state.len; i++) {
+    if (res[i] === 'correct') continue;
+    for (let j = 0; j < state.len; j++) {
+      if (!used[j] && g[i] === w[j]) { res[i] = 'present'; used[j] = true; break; }
+    }
+  }
+  return res;
+}
+
+function handleKey(k) {
+  if (state.gameOver) return;
+  if (k === '←') {
+    if (state.currentCol > 0 && !(state.currentRow === 0 && state.currentCol === 1)) {
+      state.currentCol--;
+      state.guesses[state.currentRow][state.currentCol] = '';
+      renderGrid();
+    }
+  } else if (k === 'ENTER') {
+    if (state.currentCol === state.len) submitGuess();
+    else shakeRow(state.currentRow);
+  } else if (/^[A-Z]$/.test(k) && state.currentCol < state.len) {
+    if (state.currentRow === 0 && state.currentCol === 0) {
+      state.currentCol = 1;
+      state.guesses[0][0] = state.word[0];
+    }
+    state.guesses[state.currentRow][state.currentCol] = k;
+    state.currentCol++;
+    renderGrid();
+    popTile(state.currentRow, state.currentCol - 1);
+  }
+}
+
+function submitGuess() {
+  const row = state.currentRow;
+  const guess = state.guesses[row].join('');
+  const tileStates = getTileStates(row);
+
+  // Update key states
+  tileStates.forEach((st, i) => {
+    const letter = state.guesses[row][i];
+    const prev = state.keyStates[letter];
+    if (st === 'correct' || (st === 'present' && prev !== 'correct') || (!prev && st === 'absent')) {
+      state.keyStates[letter] = st;
+    }
+  });
+
+  const won = guess === state.word;
+  state.currentRow++;
+
+  if (won) {
+    state.gameOver = true;
+    const tries = row + 1;
+    setTimeout(() => {
+      const msg = document.getElementById('msg');
+      msg.textContent = tries === 1 ? 'Incroyable ! Premier essai !' : `Bravo ! Trouvé en ${tries} essai${tries > 1 ? 's' : ''} !`;
+      msg.className = 'win';
+    }, 300);
+    updateStats(true, tries);
+  } else if (state.currentRow === 6) {
+    state.gameOver = true;
+    setTimeout(() => {
+      const msg = document.getElementById('msg');
+      msg.textContent = `Perdu — le mot était ${state.word}`;
+      msg.className = 'lose';
+    }, 300);
+    updateStats(false, 6);
+  } else {
+    // Pre-fill first letter of next row
+    state.currentCol = 0;
+    state.guesses[state.currentRow][0] = state.word[0];
+  }
+
+  renderGrid();
+  renderKeyboard();
+}
+
+function updateStats(win, tries) {
+  const s = state.stats;
+  s.played++;
+  s.byLen[state.len].p++;
+  if (win) {
+    s.wins++;
+    s.streak++;
+    if (s.streak > s.best) s.best = s.streak;
+    s.dist[tries] = (s.dist[tries] || 0) + 1;
+    s.byLen[state.len].w++;
+  } else {
+    s.streak = 0;
+  }
+  saveStats();
+  renderStatsPage(win ? tries : null);
+}
+
+// ─── RENDER ──────────────────────────────────────────────────────────────────
+function renderGrid() {
+  const g = document.getElementById('grid');
+  g.innerHTML = '';
+  for (let r = 0; r < 6; r++) {
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.id = `row-${r}`;
+    for (let c = 0; c < state.len; c++) {
+      const tile = document.createElement('div');
+      tile.className = 'tile';
+      tile.id = `tile-${r}-${c}`;
+      const letter = state.guesses[r][c];
+      if (letter) tile.textContent = letter;
+
+      if (r === 0 && c === 0 && letter) {
+        tile.classList.add('first');
+      } else if (r < state.currentRow && letter) {
+        const st = getTileStates(r)[c];
+        tile.classList.add(st);
+      } else if (letter) {
+        tile.classList.add('filled');
+      }
+      row.appendChild(tile);
+    }
+    g.appendChild(row);
+  }
+}
+
+function renderKeyboard() {
+  const rows = [
+    ['A','Z','E','R','T','Y','U','I','O','P'],
+    ['Q','S','D','F','G','H','J','K','L','M'],
+    ['ENTER','W','X','C','V','B','N','←']
+  ];
+  const kb = document.getElementById('keyboard');
+  kb.innerHTML = '';
+  rows.forEach(keys => {
+    const row = document.createElement('div');
+    row.className = 'kb-row';
+    keys.forEach(k => {
+      const btn = document.createElement('button');
+      btn.className = 'key' + (k.length > 1 ? ' wide' : '');
+      btn.textContent = k === 'ENTER' ? '↵' : k;
+      if (k !== '←' && k !== 'ENTER' && state.keyStates[k]) {
+        btn.classList.add(state.keyStates[k]);
+      }
+      btn.addEventListener('click', () => handleKey(k));
+      row.appendChild(btn);
+    });
+    kb.appendChild(row);
+  });
+}
+
+function popTile(r, c) {
+  const tile = document.getElementById(`tile-${r}-${c}`);
+  if (!tile) return;
+  tile.classList.add('pop');
+  tile.addEventListener('animationend', () => tile.classList.remove('pop'), {once: true});
+}
+
+function shakeRow(r) {
+  const row = document.getElementById(`row-${r}`);
+  if (!row) return;
+  row.querySelectorAll('.tile').forEach(t => {
+    t.classList.add('shake');
+    t.addEventListener('animationend', () => t.classList.remove('shake'), {once: true});
+  });
+}
+
+// ─── STATS PAGE ──────────────────────────────────────────────────────────────
+function renderStatsPage(highlight) {
+  const s = state.stats;
+  document.getElementById('s-played').textContent = s.played;
+  document.getElementById('s-wr').textContent = s.played ? Math.round(s.wins / s.played * 100) + '%' : '—';
+  document.getElementById('s-streak').textContent = s.streak;
+  document.getElementById('s-best').textContent = s.best;
+
+  // Distribution
+  const dist = document.getElementById('dist');
+  dist.innerHTML = '';
+  const mx = Math.max(...Object.values(s.dist), 1);
+  for (let i = 1; i <= 6; i++) {
+    const v = s.dist[i] || 0;
+    const pct = Math.max(Math.round(v / mx * 100), 6);
+    const row = document.createElement('div');
+    row.className = 'dist-row';
+    row.innerHTML = `<div class="dist-n">${i}</div><div class="dist-bar-wrap"><div class="dist-bar${i === highlight ? ' highlight' : ''}" style="width:${pct}%"><span>${v}</span></div></div>`;
+    dist.appendChild(row);
+  }
+
+  // By length
+  const bl = document.getElementById('by-length');
+  bl.innerHTML = '';
+  [5,6,7].forEach(n => {
+    const d = s.byLen[n];
+    const card = document.createElement('div');
+    card.className = 'stat-card';
+    card.style.textAlign = 'center';
+    const wr = d.p ? Math.round(d.w / d.p * 100) + '%' : '—';
+    card.innerHTML = `<div style="font-family:'DM Mono',monospace;font-size:22px;font-weight:700;color:var(--red)">${wr}</div><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text-muted);margin-top:4px">${n} lettres</div><div style="font-size:11px;color:var(--text-muted);margin-top:2px">${d.p} partie${d.p !== 1 ? 's' : ''}</div>`;
+    bl.appendChild(card);
+  });
+}
+
+// ─── LEADERBOARD ─────────────────────────────────────────────────────────────
+const LB = [
+  { name: 'Théo_B', init: 'TB', games: 87, wr: 81, avg: 3.1 },
+  { name: 'Jade_M', init: 'JM', games: 64, wr: 78, avg: 3.4 },
+  { name: 'Emma_V', init: 'EV', games: 55, wr: 74, avg: 3.7 },
+  { name: 'Vous',   init: 'ME', games: 0,  wr: 0,  avg: 0, me: true },
+  { name: 'Lucas_R',init: 'LR', games: 102,wr: 63, avg: 4.0 },
+  { name: 'Nora_C', init: 'NC', games: 41, wr: 59, avg: 4.2 },
+  { name: 'Paul_D', init: 'PD', games: 33, wr: 52, avg: 4.5 },
+];
+
+function renderLeaderboard() {
+  const s = state.stats;
+  const myWr = s.played ? Math.round(s.wins / s.played * 100) : 0;
+  const myAvg = (() => {
+    let total = 0, count = 0;
+    for (let i = 1; i <= 6; i++) { total += i * (s.dist[i]||0); count += (s.dist[i]||0); }
+    return count ? (total / count).toFixed(1) : '—';
+  })();
+
+  const rows = LB.map(p => p.me ? { ...p, games: s.played, wr: myWr, avg: myAvg } : p);
+  rows.sort((a, b) => b.wr - a.wr || a.avg - b.avg);
+
+  const body = document.getElementById('lb-body');
+  body.innerHTML = '';
+  rows.forEach((p, i) => {
+    const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+    const rankText = i === 0 ? '1' : i === 1 ? '2' : i === 2 ? '3' : i + 1;
+    const wrHigh = p.wr >= 70;
+    const row = document.createElement('div');
+    row.className = 'lb-row' + (p.me ? ' me' : '');
+    row.innerHTML = `
+      <div class="rank ${rankClass}">${rankText}</div>
+      <div class="player-cell">
+        <div class="avatar${p.me ? ' me' : ''}">${p.init}</div>
+        <span class="player-name">${p.name}</span>
+        ${p.me ? '<span class="you-badge">vous</span>' : ''}
+      </div>
+      <div class="games-cell">${p.games || '—'}</div>
+      <div class="wr${wrHigh ? ' high' : ''}">${p.games ? p.wr + '%' : '—'}</div>
+      <div class="avg-cell">${p.games ? p.avg : '—'}</div>
+    `;
+    body.appendChild(row);
+  });
+}
+
+// ─── NAVIGATION ──────────────────────────────────────────────────────────────
+function switchPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach((b, i) => b.classList.toggle('active', ['game','stats','ranking'][i] === name));
+  document.getElementById('page-' + name).classList.add('active');
+  if (name === 'stats') renderStatsPage(null);
+  if (name === 'ranking') renderLeaderboard();
+}
+
+// ─── KEYBOARD EVENTS ─────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (document.getElementById('page-game').classList.contains('active')) {
+    if (e.key === 'Enter') handleKey('ENTER');
+    else if (e.key === 'Backspace') handleKey('←');
+    else if (/^[a-zA-Z]$/.test(e.key)) handleKey(e.key.toUpperCase());
+  }
+});
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+newGame();
+renderStatsPage(null);
+renderLeaderboard();
+</script>
+</body>
+</html>
