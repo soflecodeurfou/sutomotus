@@ -116,22 +116,65 @@
     }
     loadDico();
 
-    // 2. AUTHENTIFICATION
+// 2. AUTHENTIFICATION
     async function handleAuth() {
         const email = document.getElementById('email').value;
         const password = document.getElementById('pass').value;
-        const { data, error } = await supabase.auth.signUp({ email, password });
+
+        if(!email || !password) {
+            alert("Remplis tous les champs !");
+            return;
+        }
+
+        // Tentative de connexion directe
+        const { data: signData, error: signError } = await supabase.auth.signInWithPassword({ email, password });
         
-        if (error) { // Si déjà inscrit, on connecte
-            const { data: signData, error: signError } = await supabase.auth.signInWithPassword({ email, password });
-            if (signError) alert(signError.message);
-            else checkUser();
+        if (signError) {
+            // Si l'erreur est que l'utilisateur n'existe pas, on tente l'inscription
+            console.log("Connexion échouée, tentative d'inscription...");
+            const { data: signUpData, error: signUpError } = await supabase.auth.signUp({ email, password });
+            
+            if (signUpError) {
+                alert("Erreur : " + signUpError.message);
+            } else {
+                alert("Compte créé ! Bienvenue.");
+                // Créer un profil par défaut dans ta table 'profiles'
+                await supabase.from('profiles').insert([{ 
+                    id: signUpData.user.id, 
+                    username: email.split('@')[0] 
+                }]);
+                checkUser();
+            }
         } else {
-            // Créer un profil par défaut
-            await supabase.from('profiles').insert([{ id: data.user.id, username: email.split('@')[0] }]);
+            console.log("Connexion réussie !");
             checkUser();
         }
     }
+
+    async function checkUser() {
+        const { data } = await supabase.auth.getSession();
+        if (data?.session) {
+            user = data.session.user;
+            // On récupère le pseudo
+            const { data: prof, error } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+            
+            if (prof) {
+                document.getElementById('username-display').textContent = prof.username;
+                showPage('page-lobby');
+                updateOnlineUsers();
+                // On cache le bouton connexion du header
+                document.getElementById('auth-zone').style.display = 'none';
+            }
+        } else {
+            // Si pas de session, on force l'affichage de la page d'accueil/auth
+            showPage('page-auth');
+        }
+    }
+
+    // Appeler checkUser au chargement pour voir si on est déjà loggé
+    document.addEventListener('DOMContentLoaded', () => {
+        checkUser();
+    });
 
     async function checkUser() {
         const { data } = await supabase.auth.getSession();
