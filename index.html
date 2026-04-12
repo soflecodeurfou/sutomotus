@@ -1,268 +1,285 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sutomotus Blitz 2vs2</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
-<style>
-:root{--red:#C6303A;--red-dim:#f5e0e1;--yel:#C8960A;--yel-dim:#fdf3d0;--bg:#f7f5f2;--wh:#ffffff;--tx:#1a1a1a;--mu:#888;--bd:#e0ddd8;--gt:#e8e5e0;--r:6px}
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sutomotus Pro - Blitz 2vs2</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --red: #C6303A; --yel: #C8960A; --bg: #f7f5f2; --wh: #ffffff;
+            --tx: #1a1a1a; --mu: #888; --bd: #e0ddd8; --r: 8px;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Syne', sans-serif; background: var(--bg); color: var(--tx); overflow-x: hidden; }
+        
+        /* UI Components */
+        .btn { padding: 12px 20px; border-radius: var(--r); border: 1px solid var(--bd); background: var(--wh); cursor: pointer; font-weight: 700; transition: 0.2s; }
+        .btn:hover { background: var(--tx); color: white; }
+        .btn-primary { background: var(--red); color: white; border: none; }
 
-/* BLITZ UI */
-#blitz-bar { display:none; background:var(--tx); color:white; padding:10px 20px; justify-content:space-between; align-items:center; font-family:'DM Mono',monospace; position:sticky; top:0; z-index:100; }
-.score-box { display:flex; gap:20px; font-weight:bold; }
-.team-a { color: #ff4d4d; }
-.team-b { color: #4d94ff; }
-#timer { font-size: 20px; color: var(--yel); }
+        header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; background: var(--wh); border-bottom: 1px solid var(--bd); }
+        .logo { font-size: 24px; font-weight: 800; }
+        .logo span { color: var(--red); }
 
-header{display:flex;align-items:center;justify-content:space-between;padding:0 1.5rem;height:54px;border-bottom:1px solid var(--bd);background:var(--wh)}
-.logo{font-size:19px;font-weight:800;letter-spacing:-.5px}.logo span{color:var(--red)}
+        .container { max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
+        .card { background: var(--wh); padding: 2rem; border-radius: 12px; border: 1px solid var(--bd); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
 
-.pg{display:none;padding:1.5rem 1rem 3rem;max-width:600px;margin:0 auto}.pg.on{display:block}
+        /* Pages states */
+        .page { display: none; }
+        .page.active { display: block; }
 
-/* LOBBY */
-.lobby-card { background:white; padding:2rem; border-radius:12px; border:1px solid var(--bd); text-align:center; margin-top:2rem; }
-.btn-group { display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:20px; }
+        /* Matchmaking & Lobby */
+        .user-bar { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+        .online-list { margin-top: 1rem; list-style: none; }
+        .online-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid var(--bd); }
 
-#grid{display:flex;flex-direction:column;gap:5px;align-items:center;margin-bottom:1.1rem}
-.row{display:flex;gap:5px}
-.tile{width:46px;height:46px;border:2px solid var(--bd);border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:20px;font-weight:500;color:var(--tx);text-transform:uppercase;}
-.tile.correct{background:var(--red);border-color:var(--red);color:#fff}
-.tile.present{background:var(--yel);border-color:var(--yel);color:#fff}
-.tile.absent{background:var(--gt);border-color:var(--gt);color:#777}
-
-#kb{display:flex;flex-direction:column;gap:5px;align-items:center}
-.kr{display:flex;gap:4px}
-.key{height:42px;min-width:32px;padding:0 5px;border-radius:var(--r);border:1px solid var(--bd);background:var(--wh);font-size:13px;font-weight:600;cursor:pointer;}
-.key.correct{background:var(--red);color:white}
-.key.present{background:var(--yel);color:white}
-.key.absent{background:var(--gt);color:var(--mu)}
-
-#msg{min-height:32px;text-align:center;font-size:14px;font-weight:700;margin-bottom:10px;font-family:'DM Mono';}
-.win{color:var(--red)} .err{color:var(--yel)}
-</style>
+        /* Game Grid */
+        #grid { display: flex; flex-direction: column; gap: 5px; align-items: center; margin: 2rem 0; }
+        .row { display: flex; gap: 5px; }
+        .tile { width: 50px; height: 50px; border: 2px solid var(--bd); border-radius: var(--r); display: flex; align-items: center; justify-content: center; font-family: 'DM Mono'; font-size: 24px; font-weight: 700; text-transform: uppercase; }
+        .tile.correct { background: var(--red); color: white; border-color: var(--red); }
+        .tile.present { background: var(--yel); color: white; border-color: var(--yel); }
+        
+        #blitz-ui { display: flex; justify-content: space-between; background: var(--tx); color: white; padding: 15px; border-radius: 12px; margin-bottom: 1rem; font-family: 'DM Mono'; }
+    </style>
 </head>
 <body>
 
-<div id="blitz-bar">
-    <div class="score-box">
-        <span class="team-a">TEAM A: <span id="score-a">0</span></span>
-        <span class="team-b">TEAM B: <span id="score-b">0</span></span>
-    </div>
-    <div id="timer">02:00</div>
-    <div id="my-team-tag" style="font-size:10px; opacity:0.7"></div>
-</div>
-
 <header>
-  <div class="logo">suto<span>motus BLITZ</span></div>
+    <div class="logo">Suto<span>motus</span></div>
+    <div id="auth-zone">
+        <button class="btn" onclick="showPage('page-auth')">Connexion</button>
+    </div>
 </header>
 
-<div class="pg on" id="pg-lobby">
-    <div class="lobby-card">
-        <h2>Prêt pour le 2vs2 ?</h2>
-        <p style="color:var(--mu); margin:10px 0;">Chargez le dictionnaire et rejoignez une équipe.</p>
-        <div id="dico-status">Dictionnaire en attente...</div>
-        <div class="btn-group">
-            <button class="key" style="background:#ff4d4d; color:white; height:60px" onclick="joinTeam('a')">REJOINDRE TEAM A</button>
-            <button class="key" style="background:#4d94ff; color:white; height:60px" onclick="joinTeam('b')">REJOINDRE TEAM B</button>
-        </div>
-        <button class="key" style="margin-top:20px; width:100%" onclick="startGlobalGame()">LANCER LA PARTIE (HOST)</button>
+<div class="container">
+    <div id="page-auth" class="page card">
+        <h2>Créer un compte / Connexion</h2>
+        <p style="margin-bottom: 20px; color: var(--mu);">Utilise ton email pour rejoindre la communauté.</p>
+        <input type="email" id="email" placeholder="Email" class="btn" style="width: 100%; margin-bottom: 10px;">
+        <input type="password" id="pass" placeholder="Mot de passe" class="btn" style="width: 100%; margin-bottom: 20px;">
+        <button class="btn btn-primary" style="width: 100%;" onclick="handleAuth()">Se connecter / S'inscrire</button>
     </div>
-</div>
 
-<div class="pg" id="pg-game">
-  <div id="msg"></div>
-  <div id="grid"></div>
-  <div id="kb"></div>
+    <div id="page-lobby" class="page">
+        <div class="card">
+            <h2>Bonjour, <span id="username-display">Joueur</span> !</h2>
+            <div style="margin-top: 20px; display: flex; gap: 10px;">
+                <button class="btn btn-primary" onclick="startMatchmaking()">⚡ PARTIE RAPIDE (Matchmaking)</button>
+                <button class="btn" onclick="startSolo()">Mode Entraînement</button>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top: 20px;">
+            <h3>Joueurs connectés</h3>
+            <ul id="online-list" class="online-list">
+                <li style="color: var(--mu);">Recherche de joueurs en ligne...</li>
+            </ul>
+        </div>
+    </div>
+
+    <div id="page-game" class="page">
+        <div id="blitz-ui">
+            <div>TEMPS : <span id="timer">02:00</span></div>
+            <div>SCORE : <span id="score-val">0</span></div>
+            <div id="opp-score">ADVERSAIRE : 0</div>
+        </div>
+        <div id="msg" style="text-align: center; font-weight: 700; height: 20px;"></div>
+        <div id="grid"></div>
+        <p style="text-align: center; color: var(--mu); font-size: 12px;">Tapez au clavier pour jouer</p>
+    </div>
 </div>
 
 <script>
-// --- CONFIGURATION SUPABASE ---
-const SB_URL = 'TON_URL_SUPABASE';
-const SB_KEY = 'TA_CLE_ANON';
-const supabase = window.supabase.createClient(SB_URL, SB_KEY);
+    // CONFIGURATION SUPABASE
+    const SB_URL = 'URL_SUPABASE'; 
+    const SB_KEY = 'CLE_ANON_SUPABASE';
+    const supabase = window.supabase.createClient(SB_URL, SB_KEY);
 
-// --- ÉTAT DU JEU ---
-let G = {
-    word: '', len: 6, row: 0, col: 1, over: false,
-    gs: [], keys: {}, team: null, gameId: 1
-};
-let BIG_DICT = new Set();
-let timerInterval = null;
+    let user = null;
+    let currentGame = null;
+    let score = 0;
+    let G = { word: '', row: 0, col: 1, over: false, grid: [] };
+    let dico = new Set();
+    let devKeys = "";
 
-// --- CHARGEMENT DU GROS DICO (SCRABBLE) ---
-async function loadDico() {
-    try {
-        const res = await fetch('dico.txt');
-        const text = await res.text();
-        const words = text.split(/\r?\n/);
-        words.forEach(w => {
-            const m = w.trim().toUpperCase();
-            if(m.length >= 6 && m.length <= 10) BIG_DICT.add(m);
-        });
-        document.getElementById('dico-status').textContent = `✅ Dico chargé (${BIG_DICT.size} mots)`;
-    } catch (e) {
-        document.getElementById('dico-status').textContent = "⚠️ Erreur dico.txt introuvable !";
+    // 1. CHARGEMENT DU DICO (Depuis ton Vercel)
+    async function loadDico() {
+        try {
+            const r = await fetch('dico.txt');
+            const t = await r.text();
+            t.split('\n').forEach(w => { if(w.length > 4) dico.add(w.trim().toUpperCase()) });
+            console.log("Dico chargé :", dico.size);
+        } catch(e) { console.error("Fichier dico.txt absent !"); }
     }
-}
-loadDico();
+    loadDico();
 
-// --- LOGIQUE RÉSEAU ---
-async function joinTeam(t) {
-    G.team = t;
-    document.getElementById('my-team-tag').textContent = "VOUS ÊTES : TEAM " + t.toUpperCase();
-    document.getElementById('pg-lobby').classList.remove('on');
-    document.getElementById('pg-game').classList.add('on');
-    document.getElementById('blitz-bar').style.display = 'flex';
-    
-    // Écoute les changements en temps réel
-    supabase.channel('blitz')
-    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'parties' }, payload => {
-        syncGame(payload.new);
-    })
-    .subscribe();
-
-    // Premier sync
-    const { data } = await supabase.from('parties').select('*').eq('id', G.gameId).single();
-    if(data) syncGame(data);
-}
-
-function syncGame(data) {
-    document.getElementById('score-a').textContent = data.score_a;
-    document.getElementById('score-b').textContent = data.score_b;
-    
-    // Timer
-    const m = Math.floor(data.timer / 60);
-    const s = data.timer % 60;
-    document.getElementById('timer').textContent = `${m}:${s < 10 ? '0' : ''}${s}`;
-
-    // Nouveau mot pour ma team ?
-    const targetWord = (G.team === 'a') ? data.mot_a : data.mot_b;
-    if (targetWord && targetWord !== G.word) {
-        G.word = targetWord;
-        G.len = targetWord.length;
-        resetGrid();
-    }
-
-    if (data.timer <= 0) {
-        G.over = true;
-        alert("TEMPS ÉCOULÉ ! Score final - A: " + data.score_a + " | B: " + data.score_b);
-    }
-}
-
-// --- LOGIQUE SUTOM ---
-function resetGrid() {
-    G.gs = Array(6).fill(null).map(() => Array(G.len).fill(''));
-    G.gs[0][0] = G.word[0];
-    G.row = 0; G.col = 1; G.keys = {};
-    renderGrid();
-    renderKb();
-}
-
-function renderGrid() {
-    const grid = document.getElementById('grid');
-    grid.innerHTML = '';
-    for(let r=0; r<6; r++) {
-        const row = document.createElement('div'); row.className = 'row';
-        for(let c=0; c<G.len; c++) {
-            const t = document.createElement('div'); t.className = 'tile';
-            const val = G.gs[r][c];
-            if(val) t.textContent = val;
-            if(r < G.row) t.classList.add(checkLetter(r, c));
-            else if(r === 0 && c === 0) t.classList.add('correct');
-            row.appendChild(t);
-        }
-        grid.appendChild(row);
-    }
-}
-
-function checkLetter(r, c) {
-    const guess = G.gs[r];
-    const target = G.word.split('');
-    if(guess[c] === target[c]) return 'correct';
-    if(target.includes(guess[c])) return 'present';
-    return 'absent';
-}
-
-async function submit() {
-    const guess = G.gs[G.row].join('');
-    if(guess.length < G.len) return;
-    if(!BIG_DICT.has(guess)) { showMsg("Mot inconnu !", "err"); return; }
-
-    if(guess === G.word) {
-        // VICTOIRE : On génère le mot suivant via Supabase pour toute l'équipe
-        const nextWord = Array.from(BIG_DICT)[Math.floor(Math.random() * BIG_DICT.size)];
-        const update = G.team === 'a' ? 
-            { score_a: parseInt(document.getElementById('score-a').textContent) + 1, mot_a: nextWord } :
-            { score_b: parseInt(document.getElementById('score-b').textContent) + 1, mot_b: nextWord };
+    // 2. AUTHENTIFICATION
+    async function handleAuth() {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('pass').value;
+        const { data, error } = await supabase.auth.signUp({ email, password });
         
-        await supabase.from('parties').update(update).eq('id', G.gameId);
-    } else {
-        G.row++;
-        if(G.row >= 6) {
-            // Perdu la manche, on passe au mot suivant (pénalité de temps ?)
-            const nextWord = Array.from(BIG_DICT)[Math.floor(Math.random() * BIG_DICT.size)];
-            const update = G.team === 'a' ? { mot_a: nextWord } : { mot_b: nextWord };
-            await supabase.from('parties').update(update).eq('id', G.gameId);
+        if (error) { // Si déjà inscrit, on connecte
+            const { data: signData, error: signError } = await supabase.auth.signInWithPassword({ email, password });
+            if (signError) alert(signError.message);
+            else checkUser();
         } else {
-            G.col = 1; G.gs[G.row][0] = G.word[0];
+            // Créer un profil par défaut
+            await supabase.from('profiles').insert([{ id: data.user.id, username: email.split('@')[0] }]);
+            checkUser();
         }
     }
-    renderGrid();
-}
 
-// --- CLAVIER & INPUTS ---
-window.addEventListener('keydown', e => {
-    if(G.over || !G.team) return;
-    if(e.key === 'Enter') submit();
-    else if(e.key === 'Backspace') {
-        if(G.col > 1) { G.col--; G.gs[G.row][G.col] = ''; renderGrid(); }
-    } else if(/^[a-zA-Z]$/.test(e.key)) {
-        if(G.col < G.len) {
-            G.gs[G.row][G.col] = e.key.toUpperCase();
-            G.col++;
-            renderGrid();
+    async function checkUser() {
+        const { data } = await supabase.auth.getSession();
+        if (data?.session) {
+            user = data.session.user;
+            const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+            document.getElementById('username-display').textContent = prof.username;
+            showPage('page-lobby');
+            updateOnlineUsers();
         }
     }
-});
+    checkUser();
 
-function renderKb() {
-    const rows = [['A','Z','E','R','T','Y','U','I','O','P'],['Q','S','D','F','G','H','J','K','L','M'],['W','X','C','V','B','N']];
-    const kb = document.getElementById('kb'); kb.innerHTML = '';
-    rows.forEach(r => {
-        const row = document.createElement('div'); row.className='kr';
-        r.forEach(k => {
-            const b = document.createElement('button'); b.className='key'; b.textContent=k;
-            b.onclick = () => window.dispatchEvent(new KeyboardEvent('keydown', {key:k}));
-            row.appendChild(b);
+    // 3. MATCHMAKING (Style Chess.com)
+    async function startMatchmaking() {
+        document.getElementById('msg').textContent = "Recherche d'un adversaire...";
+        showPage('page-game'); // On montre l'arène
+        
+        // S'inscrire en file d'attente
+        await supabase.from('matchmaking').insert([{ id: user.id }]);
+
+        // Écouter si une partie est créée avec notre ID
+        const channel = supabase.channel('matchmaking_res')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'parties' }, payload => {
+            if (payload.new.player_a === user.id || payload.new.player_b === user.id) {
+                initGame(payload.new);
+            }
+        }).subscribe();
+
+        // Tenter de pairer si quelqu'un attend déjà
+        const { data: waiting } = await supabase.from('matchmaking').select('*').neq('id', user.id).limit(1);
+        if (waiting && waiting.length > 0) {
+            const oppId = waiting[0].id;
+            const startWord = Array.from(dico)[Math.floor(Math.random() * 1000)];
+            const { data: newGame } = await supabase.from('parties').insert([{
+                player_a: oppId, player_b: user.id, mot_a: startWord, mot_b: startWord
+            }]).select().single();
+            // Nettoyer la file
+            await supabase.from('matchmaking').delete().in('id', [user.id, oppId]);
+        }
+    }
+
+    // 4. LOGIQUE DU JEU
+    function initGame(gameData) {
+        currentGame = gameData;
+        G.word = (gameData.player_a === user.id) ? gameData.mot_a : gameData.mot_b;
+        G.len = G.word.length;
+        G.row = 0; G.col = 1; G.over = false;
+        G.grid = Array(6).fill(null).map(() => Array(G.len).fill(''));
+        G.grid[0][0] = G.word[0];
+        renderGrid();
+        startTimer();
+        
+        // Synchro des scores adverses
+        supabase.channel(`game_${gameData.id}`)
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'parties' }, p => {
+            const isA = currentGame.player_a === user.id;
+            document.getElementById('opp-score').textContent = "ADVERSAIRE : " + (isA ? p.new.score_b : p.new.score_a);
+        }).subscribe();
+    }
+
+    function renderGrid() {
+        const grid = document.getElementById('grid');
+        grid.innerHTML = '';
+        G.grid.forEach((r, i) => {
+            const rowDiv = document.createElement('div'); rowDiv.className = 'row';
+            r.forEach((letter, j) => {
+                const tile = document.createElement('div'); tile.className = 'tile';
+                tile.textContent = letter;
+                if (i < G.row) {
+                    if (G.word[j] === letter) tile.classList.add('correct');
+                    else if (G.word.includes(letter)) tile.classList.add('present');
+                } else if (i === 0 && j === 0) tile.classList.add('correct');
+                rowDiv.appendChild(tile);
+            });
+            grid.appendChild(rowDiv);
         });
-        kb.appendChild(row);
+    }
+
+    window.addEventListener('keydown', async e => {
+        // SECRET "CAROTTE"
+        devKeys += e.key.toLowerCase();
+        if (devKeys.includes("carotte")) { 
+            alert("🛠️ MODE DEVELOPPEUR : Score +100"); 
+            score += 100; devKeys = ""; 
+            document.getElementById('score-val').textContent = score;
+        }
+
+        if (G.over || !currentGame) return;
+
+        if (e.key === 'Enter' && G.col === G.len) {
+            const guess = G.grid[G.row].join('');
+            if (!dico.has(guess)) { alert("Mot inconnu !"); return; }
+            
+            if (guess === G.word) {
+                score++;
+                document.getElementById('score-val').textContent = score;
+                // Update Supabase
+                const up = (currentGame.player_a === user.id) ? { score_a: score } : { score_b: score };
+                await supabase.from('parties').update(up).eq('id', currentGame.id);
+                // Prochain mot
+                G.word = Array.from(dico)[Math.floor(Math.random() * 5000)];
+                G.row = 0; G.col = 1;
+                G.grid = Array(6).fill(null).map(() => Array(G.word.length).fill(''));
+                G.grid[0][0] = G.word[0];
+            } else {
+                G.row++;
+                if (G.row === 6) { G.row = 0; G.col = 1; } // On reset la grille si échec
+                else { G.col = 1; G.grid[G.row][0] = G.word[0]; }
+            }
+            renderGrid();
+        } else if (e.key === 'Backspace' && G.col > 1) {
+            G.col--; G.grid[G.row][G.col] = ''; renderGrid();
+        } else if (/^[a-z]$/i.test(e.key) && G.col < G.len) {
+            G.grid[G.row][G.col] = e.key.toUpperCase(); G.col++; renderGrid();
+        }
     });
-}
 
-function showMsg(t, c) {
-    const m = document.getElementById('msg'); m.textContent = t; m.className = c;
-    setTimeout(() => m.textContent = '', 2000);
-}
+    // HELPERS
+    function showPage(id) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
 
-// --- FONCTION HOST (TIMER) ---
-async function startGlobalGame() {
-    const startWord = Array.from(BIG_DICT)[Math.floor(Math.random() * BIG_DICT.size)];
-    await supabase.from('parties').update({
-        score_a: 0, score_b: 0, mot_a: startWord, mot_b: startWord, timer: 120, statut: 'run'
-    }).eq('id', G.gameId);
+    function startTimer() {
+        let t = 120;
+        const interval = setInterval(() => {
+            t--;
+            const m = Math.floor(t/60), s = t%60;
+            document.getElementById('timer').textContent = `${m}:${s<10?'0':''}${s}`;
+            if(t <= 0) { clearInterval(interval); G.over = true; alert("Partie terminée !"); }
+        }, 1000);
+    }
 
-    // Décompte géré par l'host
-    let t = 120;
-    const inter = setInterval(async () => {
-        t--;
-        await supabase.from('parties').update({ timer: t }).eq('id', G.gameId);
-        if(t <= 0) clearInterval(inter);
-    }, 1000);
-}
+    async function updateOnlineUsers() {
+        // Utilisation de Supabase Presence pour voir qui est là
+        const room = supabase.channel('online-players');
+        room.on('presence', { event: 'sync' }, () => {
+            const state = room.presenceState();
+            const list = document.getElementById('online-list');
+            list.innerHTML = Object.values(state).map(u => `<li class="online-item">${u[0].username} <span>En ligne</span></li>`).join('');
+        })
+        .subscribe(async (status) => {
+            if (status === 'SUBSCRIBED') {
+                await room.track({ username: document.getElementById('username-display').textContent });
+            }
+        });
+    }
 </script>
 </body>
 </html>
