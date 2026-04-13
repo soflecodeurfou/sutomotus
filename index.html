@@ -6,14 +6,39 @@
 
 <body>
 
-<button onclick="test()">CLICK</button>
+<h2 id="user">Pas connecté</h2>
+
+<input id="email" placeholder="email">
+<input id="pass" type="password" placeholder="password">
+<button onclick="login()">Connexion</button>
 
 <script>
-function test(){
-  alert("JS OK");
+const supabase = window.supabase.createClient(
+  "https://djolamqsceftrkqulldl.supabase.co",
+  "sb_publishable_rwC-DCZvgYXfRAb23izSbg_kwsiGzAt"
+);
+
+async function login(){
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("pass").value;
+
+  let { error } = await supabase.auth.signInWithPassword({ email, password });
+
+  if(error){
+    let { data } = await supabase.auth.signUp({ email, password });
+  }
+
+  checkUser();
+}
+
+async function checkUser(){
+  const { data } = await supabase.auth.getUser();
+
+  if(data?.user){
+    document.getElementById("user").innerText = data.user.email;
+  }
 }
 </script>
 
 </body>
 </html>
-
