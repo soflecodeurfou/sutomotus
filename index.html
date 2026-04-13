@@ -6,132 +6,90 @@
 
 <body>
 
-<h2>Connexion / Inscription</h2>
-<input id="email" placeholder="email"><br>
-<input id="pass" type="password" placeholder="password"><br>
-<button onclick="auth()">GO</button>
+<h2>Créer un compte / Connexion</h2>
+
+<input id="email" placeholder="email"><br><br>
+<input id="password" type="password" placeholder="mot de passe"><br><br>
+<input id="username" placeholder="pseudo"><br><br>
+<input id="avatar" placeholder="url photo de profil"><br><br>
+
+<button onclick="register()">Créer compte</button>
+<button onclick="login()">Se connecter</button>
 
 <hr>
 
-<h2>Profil</h2>
+<h2>Utilisateur connecté</h2>
 <p id="user"></p>
-
-<input id="username" placeholder="pseudo">
-<input id="avatar" placeholder="url avatar">
-<button onclick="saveProfile()">Sauvegarder</button>
-
-<hr>
-
-<h2>Ajouter un ami</h2>
-<input id="friendEmail" placeholder="email ami">
-<button onclick="addFriend()">Ajouter</button>
-
-<h3>Mes amis</h3>
-<ul id="friends"></ul>
+<img id="avatarImg" width="100">
 
 <script>
-const supabase = window.supabase.createClient(
+const db = window.supabase.createClient(
   "https://djolamqsceftrkqulldl.supabase.co",
   "sb_publishable_rwC-DCZvgYXfRAb23izSbg_kwsiGzAt"
 );
 
-let user = null;
+let currentUser = null;
 
-// LOGIN / REGISTER
-async function auth(){
+// INSCRIPTION
+async function register(){
   const email = document.getElementById("email").value;
-  const pass = document.getElementById("pass").value;
-
-  let { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password: pass
-  });
-
-  if(error){
-    let res = await supabase.auth.signUp({
-      email,
-      password: pass
-    });
-
-    user = res.data.user;
-
-    await supabase.from("profiles").insert({
-      id: user.id,
-      email: email,
-      username: email.split("@")[0]
-    });
-
-  } else {
-    user = data.user;
-  }
-
-  loadUser();
-}
-
-// LOAD USER
-async function loadUser(){
-  const { data } = await supabase.auth.getUser();
-  user = data.user;
-
-  document.getElementById("user").innerText = user.email;
-
-  loadFriends();
-}
-
-// SAVE PROFILE
-async function saveProfile(){
+  const password = document.getElementById("password").value;
   const username = document.getElementById("username").value;
   const avatar = document.getElementById("avatar").value;
 
-  await supabase.from("profiles").update({
-    username: username,
-    avatar_url: avatar
-  }).eq("id", user.id);
-
-  alert("Profil sauvegardé");
-}
-
-// ADD FRIEND
-async function addFriend(){
-  const email = document.getElementById("friendEmail").value;
-
-  const { data: friend } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("email", email)
-    .single();
-
-  if(!friend) return alert("Utilisateur introuvable");
-
-  await supabase.from("friends").insert({
-    user_id: user.id,
-    friend_id: friend.id,
-    status: "pending"
+  const { data, error } = await db.auth.signUp({
+    email,
+    password
   });
 
-  alert("Demande envoyée !");
-}
-
-// LOAD FRIENDS
-async function loadFriends(){
-  const { data } = await supabase
-    .from("friends")
-    .select("*, profiles:friend_id(username, avatar_url)")
-    .eq("user_id", user.id);
-
-  const list = document.getElementById("friends");
-  list.innerHTML = "";
-
-  if(!data || data.length === 0){
-    list.innerHTML = "<li>Aucun ami</li>";
+  if(error){
+    alert(error.message);
     return;
   }
 
-  data.forEach(f => {
-    const li = document.createElement("li");
-    li.innerText = f.profiles?.username + " (" + f.status + ")";
-    list.appendChild(li);
+  const user = data.user;
+
+  await db.from("profiles").insert({
+    id: user.id,
+    email: email,
+    username: username,
+    avatar_url: avatar
   });
+
+  alert("Compte créé !");
+}
+
+// CONNEXION
+async function login(){
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+
+  const { data, error } = await db.auth.signInWithPassword({
+    email,
+    password
+  });
+
+  if(error){
+    alert(error.message);
+    return;
+  }
+
+  currentUser = data.user;
+  loadProfile();
+}
+
+// CHARGER PROFIL
+async function loadProfile(){
+  const { data } = await db
+    .from("profiles")
+    .select("*")
+    .eq("id", currentUser.id)
+    .single();
+
+  document.getElementById("user").innerText =
+    "Pseudo : " + data.username + " | Email : " + data.email;
+
+  document.getElementById("avatarImg").src = data.avatar_url;
 }
 </script>
 
