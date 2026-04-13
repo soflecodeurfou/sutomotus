@@ -1,92 +1,81 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <title>Sutomotus Auth</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <meta charset="UTF-8">
+    <title>Sutomotus - Correction</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        .card { border: 1px solid #ccc; padding: 20px; max-width: 400px; border-radius: 8px; }
+        input { width: 100%; padding: 8px; margin: 10px 0; }
+        button { padding: 10px; cursor: pointer; background: #C6303A; color: white; border: none; border-radius: 4px; }
+    </style>
 </head>
-
 <body>
 
-<h2>Connexion</h2>
-
-<input id="email" placeholder="email">
-<button onclick="login()">Se connecter (magic link)</button>
-
-<h3 id="status">Pas connecté</h3>
-
-<button onclick="logout()">Se déconnecter</button>
+<div class="card">
+    <h2>Connexion</h2>
+    <input id="email" placeholder="Ton email">
+    <button onclick="handleLogin()">Se connecter (Magic Link)</button>
+    
+    <h3 id="status">Pas connecté</h3>
+    <button onclick="logout()" style="background:#666">Se déconnecter</button>
+    
+    <hr>
+    <button onclick="adminAccess()" style="background:#222; width:100%">🛠️ Mode Admin (carotte)</button>
+</div>
 
 <script>
-// ⚡ CONFIG
-const supabase = window.supabase.createClient(
-  "https://djolamqsceftrkqulldl.supabase.co",
-  "sb_publishable_rwC-DCZvgYXfRAb23izSbg_kwsiGzAt"
-);
+// --- UNE SEULE DÉCLARATION ICI ---
+const SB_URL = "https://djolamqsceftrkqulldl.supabase.co";
+const SB_KEY = "sb_publishable_rwC-DCZvgYXfRAb23izSbg_kwsiGzAt";
+const supabase = window.supabase.createClient(SB_URL, SB_KEY);
 
-// 🔐 LOGIN MAGIC LINK
-async function login() {
-  const email = document.getElementById("email").value;
+// --- FONCTION DE CONNEXION ---
+async function handleLogin() {
+    const email = document.getElementById("email").value;
+    if(!email) return alert("Indique un email");
 
-  const { error } = await supabase.auth.signInWithOtp({
-    email: email
-  });
+    const { error } = await supabase.auth.signInWithOtp({ email });
 
-  if (error) {
-    alert(error.message);
-  } else {
-    alert("📧 Email envoyé ! Regarde ta boîte mail.");
-  }
+    if (error) {
+        alert("Erreur: " + error.message);
+    } else {
+        alert("📧 Email envoyé ! Regarde ta boîte mail (et tes spams).");
+    }
 }
 
-// 👤 CREATE PROFILE SI EXISTE PAS
-async function createProfile(user) {
-  const { data } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (!data) {
-    await supabase.from("profiles").insert({
-      id: user.id,
-      username: user.email.split("@")[0],
-      avatar: ""
-    });
-  }
-}
-
-// 📥 LOAD USER
+// --- VÉRIFICATION DE L'UTILISATEUR ---
 async function loadUser() {
-  const { data } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
 
-  if (!data.user) {
-    document.getElementById("status").innerText = "Pas connecté";
-    return;
-  }
-
-  await createProfile(data.user);
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", data.user.id)
-    .maybeSingle();
-
-  document.getElementById("status").innerText =
-    "Connecté : " + (profile?.username || data.user.email);
+    if (user) {
+        // Création du profil si nouveau
+        await supabase.from("profiles").maybeSingle(); // Juste pour vérifier l'accès
+        document.getElementById("status").innerText = "Connecté : " + user.email;
+    } else {
+        document.getElementById("status").innerText = "Pas connecté";
+    }
 }
 
-// 🚪 LOGOUT
+// --- MODE ADMIN ---
+function adminAccess() {
+    const mdp = prompt("Mot de passe :");
+    if(mdp === "carotte") {
+        alert("🛠️ Accès Admin OK !");
+        // Ici tu peux lancer ton jeu
+    } else {
+        alert("Faux !");
+    }
+}
+
 async function logout() {
-  await supabase.auth.signOut();
-  location.reload();
+    await supabase.auth.signOut();
+    location.reload();
 }
 
-// 🔄 AUTO LOGIN (important pour magic link)
-window.addEventListener("load", async () => {
-  await loadUser();
-});
+// Lancer au chargement
+window.onload = loadUser;
 </script>
 
 </body>
