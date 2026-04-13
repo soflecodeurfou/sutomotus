@@ -1,77 +1,92 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="UTF-8">
+  <title>Sutomotus Auth</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
 
-<h2>Connexion / Inscription</h2>
+<h2>Connexion</h2>
 
-<input id="email" placeholder="email"><br><br>
-<input id="password" type="password" placeholder="password"><br><br>
+<input id="email" placeholder="email">
+<button onclick="login()">Se connecter (magic link)</button>
 
-<button onclick="login()">Login / Signup</button>
+<h3 id="status">Pas connecté</h3>
 
-<h3 id="user"></h3>
+<button onclick="logout()">Se déconnecter</button>
 
 <script>
+// ⚡ CONFIG
 const supabase = window.supabase.createClient(
   "https://djolamqsceftrkqulldl.supabase.co",
   "sb_publishable_rwC-DCZvgYXfRAb23izSbg_kwsiGzAt"
 );
 
-// LOGIN / SIGNUP
+// 🔐 LOGIN MAGIC LINK
 async function login() {
   const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
 
-  // essayer login
-  let { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  const { error } = await supabase.auth.signInWithOtp({
+    email: email
+  });
 
-  // si erreur → signup
   if (error) {
-    let res = await supabase.auth.signUp({ email, password });
-
-    if (res.error) {
-      alert(res.error.message);
-      return;
-    }
-
-    // créer profil
-    await supabase.from("profiles").insert({
-      id: res.data.user.id,
-      username: email.split("@")[0],
-      avatar: ""
-    });
-
-    alert("Compte créé !");
+    alert(error.message);
+  } else {
+    alert("📧 Email envoyé ! Regarde ta boîte mail.");
   }
-
-  loadUser();
 }
 
-// LOAD USER
+// 👤 CREATE PROFILE SI EXISTE PAS
+async function createProfile(user) {
+  const { data } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (!data) {
+    await supabase.from("profiles").insert({
+      id: user.id,
+      username: user.email.split("@")[0],
+      avatar: ""
+    });
+  }
+}
+
+// 📥 LOAD USER
 async function loadUser() {
   const { data } = await supabase.auth.getUser();
 
-  if (!data.user) return;
+  if (!data.user) {
+    document.getElementById("status").innerText = "Pas connecté";
+    return;
+  }
 
-  // récupérer profil
+  await createProfile(data.user);
+
   const { data: profile } = await supabase
     .from("profiles")
     .select("*")
     .eq("id", data.user.id)
-    .single();
+    .maybeSingle();
 
-  console.log(profile);
-
-  document.getElementById("user").innerText =
+  document.getElementById("status").innerText =
     "Connecté : " + (profile?.username || data.user.email);
 }
 
-// auto login
-loadUser();
+// 🚪 LOGOUT
+async function logout() {
+  await supabase.auth.signOut();
+  location.reload();
+}
+
+// 🔄 AUTO LOGIN (important pour magic link)
+window.addEventListener("load", async () => {
+  await loadUser();
+});
 </script>
 
 </body>
