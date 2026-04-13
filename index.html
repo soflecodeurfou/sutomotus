@@ -1,93 +1,19 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sutomotus - Login & Admin</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #f7f5f2; margin: 0; }
-        .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); width: 100%; max-width: 350px; text-align: center; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; margin-top: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s; }
-        .btn-auth { background: #C6303A; color: white; }
-        .btn-admin { background: #1a1a1a; color: white; margin-top: 20px; }
-        .btn-logout { background: #eee; color: #666; font-size: 0.8em; }
-        #status { margin: 15px 0; font-size: 0.9em; color: #444; }
-    </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
+
 <body>
 
-<div class="card">
-    <h2 id="title">Connexion</h2>
-    
-    <div id="auth-ui">
-        <input id="email" type="email" placeholder="Email">
-        <button class="btn-auth" onclick="handleLogin()">Se connecter (Magic Link)</button>
-    </div>
-
-    <div id="logged-ui" style="display:none;">
-        <p id="status">Chargement...</p>
-        <button class="btn-logout" onclick="logout()">Se déconnecter</button>
-    </div>
-
-    <button class="btn-admin" onclick="adminAccess()">🛠️ Mode Admin (carotte)</button>
-</div>
+<button onclick="test()">CLICK</button>
 
 <script>
-// --- 1. UNE SEULE DÉCLARATION ICI (Pas de doublon !) ---
-const SB_URL = "https://djolamqsceftrkqulldl.supabase.co";
-const SB_KEY = "sb_publishable_rwC-DCZvgYXfRAb23izSbg_kwsiGzAt";
-const supabase = window.supabase.createClient(SB_URL, SB_KEY);
-
-// --- 2. FONCTION CONNEXION ---
-async function handleLogin() {
-    const email = document.getElementById("email").value;
-    if(!email) return alert("Indique ton email !");
-
-    const { error } = await supabase.auth.signInWithOtp({ email });
-
-    if (error) {
-        alert("Erreur : " + error.message);
-    } else {
-        alert("📧 Email envoyé ! Vérifie ta boîte de réception.");
-    }
+function test(){
+  alert("JS OK");
 }
-
-// --- 3. MODE ADMIN (MDP : carotte) ---
-function adminAccess() {
-    const mdp = prompt("Mot de passe secret :");
-    if(mdp === "carotte") {
-        alert("Accès Admin OK ! Tu peux tester le jeu.");
-        // Ici tu peux appeler ta fonction de lancement du jeu
-    } else {
-        alert("Code erroné.");
-    }
-}
-
-// --- 4. VÉRIFICATION UTILISATEUR ---
-async function checkUser() {
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (user) {
-        document.getElementById("auth-ui").style.display = "none";
-        document.getElementById("logged-ui").style.display = "block";
-        document.getElementById("status").innerText = "Connecté : " + user.email;
-    } else {
-        document.getElementById("auth-ui").style.display = "block";
-        document.getElementById("logged-ui").style.display = "none";
-    }
-}
-
-// --- 5. DÉCONNEXION ---
-async function logout() {
-    await supabase.auth.signOut();
-    location.reload();
-}
-
-// Lancement automatique au chargement de la page
-window.onload = checkUser;
 </script>
 
 </body>
 </html>
+
