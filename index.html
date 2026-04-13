@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Supabase Auth</title>
+<title>Supabase Auth FULL</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -17,7 +17,7 @@ body {
   border: 1px solid #ddd;
   padding: 20px;
   margin: 10px auto;
-  width: 280px;
+  width: 300px;
   border-radius: 10px;
 }
 
@@ -44,7 +44,7 @@ button {
 
 <h2>Système Supabase</h2>
 
-<!-- 🔵 INSCRIPTION -->
+<!-- INSCRIPTION -->
 <div class="box">
   <h3>Inscription</h3>
   <input id="r_email" placeholder="Email">
@@ -53,7 +53,7 @@ button {
   <button onclick="register()">Créer un compte</button>
 </div>
 
-<!-- 🟢 CONNEXION -->
+<!-- CONNEXION -->
 <div class="box">
   <h3>Connexion</h3>
   <input id="l_email" placeholder="Email">
@@ -66,10 +66,32 @@ button {
 <div id="status">Non connecté</div>
 
 <script>
+
+// 🔥 CONFIG SUPABASE
 const SUPABASE_URL = "https://djolamqsceftrkqulldl.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRqb2xhbXFzY2VmdHJrcXVsbGRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwMTY5OTIsImV4cCI6MjA5MTU5Mjk5Mn0.UpuvC9P2sMAN34dbfxwjuOa7ByV4swDgqrt-x4xKyjg";
+const SUPABASE_KEY = "TON_ANON_KEY_ICI";
 
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ---------------- CREATE PROFILE SAFE ----------------
+async function ensureProfile(user, username = null) {
+  if (!user) return;
+
+  const { data } = await db
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (!data) {
+    const { error } = await db.from("profiles").insert({
+      id: user.id,
+      username: username || user.email.split("@")[0]
+    });
+
+    if (error) console.log("Profile error:", error);
+  }
+}
 
 // ---------------- REGISTER ----------------
 async function register() {
@@ -88,10 +110,7 @@ async function register() {
   if (error) return alert(error.message);
 
   if (data?.user) {
-    await db.from("profiles").insert({
-      id: data.user.id,
-      username: username
-    });
+    await ensureProfile(data.user, username);
   }
 
   alert("Compte créé !");
@@ -110,10 +129,14 @@ async function login() {
 
   if (error) return alert(error.message);
 
+  if (data?.user) {
+    await ensureProfile(data.user);
+  }
+
   loadUser();
 }
 
-// ---------------- USER ----------------
+// ---------------- LOAD USER ----------------
 async function loadUser() {
   const { data } = await db.auth.getUser();
 
@@ -138,8 +161,9 @@ async function logout() {
   location.reload();
 }
 
-// auto load
+// AUTO LOAD
 loadUser();
+
 </script>
 
 </body>
