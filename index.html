@@ -2,81 +2,118 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Supabase Auth FIX</title>
+<title>Supabase Auth</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
-body { font-family: Arial; text-align:center; padding-top:40px; }
-input { padding:10px; margin:5px; }
-button { padding:10px 15px; cursor:pointer; }
+body {
+  font-family: Arial;
+  text-align: center;
+  padding-top: 40px;
+}
+
+.box {
+  border: 1px solid #ddd;
+  padding: 20px;
+  margin: 10px auto;
+  width: 280px;
+  border-radius: 10px;
+}
+
+input {
+  width: 90%;
+  padding: 8px;
+  margin: 5px 0;
+}
+
+button {
+  padding: 8px 12px;
+  cursor: pointer;
+  margin-top: 5px;
+}
+
+#status {
+  margin-top: 20px;
+  font-weight: bold;
+}
 </style>
 </head>
 
 <body>
 
-<h2>Auth Supabase</h2>
+<h2>Système Supabase</h2>
 
-<input id="email" placeholder="email"><br>
-<input id="password" type="password" placeholder="password"><br>
+<!-- 🔵 INSCRIPTION -->
+<div class="box">
+  <h3>Inscription</h3>
+  <input id="r_email" placeholder="Email">
+  <input id="r_username" placeholder="Pseudo">
+  <input id="r_password" type="password" placeholder="Mot de passe">
+  <button onclick="register()">Créer un compte</button>
+</div>
 
-<button onclick="auth()">Connexion / Inscription</button>
+<!-- 🟢 CONNEXION -->
+<div class="box">
+  <h3>Connexion</h3>
+  <input id="l_email" placeholder="Email">
+  <input id="l_password" type="password" placeholder="Mot de passe">
+  <button onclick="login()">Se connecter</button>
+</div>
+
 <button onclick="logout()">Logout</button>
 
-<h3 id="status">Non connecté</h3>
+<div id="status">Non connecté</div>
 
 <script>
-
-// 🔥 IMPORTANT : utilise TA ANON KEY (pas service_role)
 const SUPABASE_URL = "https://djolamqsceftrkqulldl.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRqb2xhbXFzY2VmdHJrcXVsbGRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwMTY5OTIsImV4cCI6MjA5MTU5Mjk5Mn0.UpuvC9P2sMAN34dbfxwjuOa7ByV4swDgqrt-x4xKyjg";
 
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// ---------------- PROFILE ----------------
-async function createProfile(user) {
-  if (!user) return;
+// ---------------- REGISTER ----------------
+async function register() {
+  const email = document.getElementById("r_email").value;
+  const password = document.getElementById("r_password").value;
+  const username = document.getElementById("r_username").value;
 
-  const { data } = await db
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .maybeSingle();
+  if (!email || !password || !username)
+    return alert("Remplis tout");
 
-  if (!data) {
-    await db.from("profiles").insert({
-      id: user.id,
-      username: user.email.split("@")[0]
-    });
-  }
-}
-
-// ---------------- AUTH ----------------
-async function auth() {
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
-
-  if (!email || !password) return alert("Remplis tout");
-
-  let { data, error } = await db.auth.signInWithPassword({
+  const { data, error } = await db.auth.signUp({
     email,
     password
   });
 
-  if (error) {
-    const res = await db.auth.signUp({ email, password });
-    if (res.error) return alert(res.error.message);
-    data = res.data;
-  }
+  if (error) return alert(error.message);
 
   if (data?.user) {
-    await createProfile(data.user);
+    await db.from("profiles").insert({
+      id: data.user.id,
+      username: username
+    });
   }
+
+  alert("Compte créé !");
+  loadUser();
+}
+
+// ---------------- LOGIN ----------------
+async function login() {
+  const email = document.getElementById("l_email").value;
+  const password = document.getElementById("l_password").value;
+
+  const { data, error } = await db.auth.signInWithPassword({
+    email,
+    password
+  });
+
+  if (error) return alert(error.message);
 
   loadUser();
 }
 
-// ---------------- LOAD USER ----------------
+// ---------------- USER ----------------
 async function loadUser() {
   const { data } = await db.auth.getUser();
 
@@ -101,9 +138,8 @@ async function logout() {
   location.reload();
 }
 
-// auto
+// auto load
 loadUser();
-
 </script>
 
 </body>
