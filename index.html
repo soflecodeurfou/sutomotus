@@ -1,43 +1,134 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<meta charset="UTF-8">
+<title>Supabase Auth Clean</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+body { font-family: Arial; text-align:center; padding-top:40px; }
+input { padding:10px; margin:5px; }
+button { padding:10px 15px; cursor:pointer; }
+</style>
 </head>
 
 <body>
 
-<h2 id="user">Pas connecté</h2>
+<h2>Connexion Supabase</h2>
 
-<input id="email" placeholder="email">
-<input id="pass" type="password" placeholder="password">
-<button onclick="login()">Connexion</button>
+<input id="email" placeholder="email"><br>
+<input id="password" type="password" placeholder="password"><br>
+
+<button onclick="auth()">Connexion / Inscription</button>
+<button onclick="logout()">Logout</button>
+
+<h3 id="status">Non connecté</h3>
 
 <script>
+// ======================
+// SUPABASE INIT
+// ======================
 const supabase = window.supabase.createClient(
   "https://djolamqsceftrkqulldl.supabase.co",
   "sb_publishable_rwC-DCZvgYXfRAb23izSbg_kwsiGzAt"
 );
 
-async function login(){
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("pass").value;
+// ======================
+// CREATE PROFILE
+// ======================
+async function createProfile(user) {
+  if (!user) return;
 
-  let { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .maybeSingle();
 
-  if(error){
-    let { data } = await supabase.auth.signUp({ email, password });
+  if (!data) {
+    await supabase.from("profiles").insert({
+      id: user.id,
+      username: user.email.split("@")[0]
+    });
   }
-
-  checkUser();
 }
 
-async function checkUser(){
+// ======================
+// AUTH LOGIN / SIGNUP
+// ======================
+async function auth() {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+
+  if (!email || !password) {
+    alert("Remplis tout");
+    return;
+  }
+
+  // LOGIN
+  let { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password
+  });
+
+  // SI ERREUR → SIGNUP
+  if (error) {
+    const res = await supabase.auth.signUp({
+      email,
+      password
+    });
+
+    if (res.error) {
+      alert(res.error.message);
+      return;
+    }
+
+    data = res.data;
+  }
+
+  if (data?.user) {
+    await createProfile(data.user);
+  }
+
+  loadUser();
+}
+
+// ======================
+// LOAD USER
+// ======================
+async function loadUser() {
   const { data } = await supabase.auth.getUser();
 
-  if(data?.user){
-    document.getElementById("user").innerText = data.user.email;
+  if (!data.user) {
+    document.getElementById("status").innerText = "Non connecté";
+    return;
   }
+
+  await createProfile(data.user);
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", data.user.id)
+    .maybeSingle();
+
+  document.getElementById("status").innerText =
+    "Connecté : " +
+    (profile?.username || data.user.email);
 }
+
+// ======================
+// LOGOUT
+// ======================
+async function logout() {
+  await supabase.auth.signOut();
+  location.reload();
+}
+
+// auto load
+loadUser();
+
 </script>
 
 </body>
