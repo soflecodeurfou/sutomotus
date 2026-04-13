@@ -29,7 +29,7 @@ button { padding:10px 15px; cursor:pointer; }
 // ======================
 // SUPABASE INIT
 // ======================
-const supabase = window.supabase.createClient(
+const db = window.supabase.createClient(
   "https://djolamqsceftrkqulldl.supabase.co",
   "sb_publishable_rwC-DCZvgYXfRAb23izSbg_kwsiGzAt"
 );
@@ -40,14 +40,14 @@ const supabase = window.supabase.createClient(
 async function createProfile(user) {
   if (!user) return;
 
-  const { data } = await supabase
+  const { data } = await db
     .from("profiles")
     .select("*")
     .eq("id", user.id)
     .maybeSingle();
 
   if (!data) {
-    await supabase.from("profiles").insert({
+    await db.from("profiles").insert({
       id: user.id,
       username: user.email.split("@")[0]
     });
@@ -67,14 +67,14 @@ async function auth() {
   }
 
   // LOGIN
-  let { data, error } = await supabase.auth.signInWithPassword({
+  let { data, error } = await db.auth.signInWithPassword({
     email,
     password
   });
 
   // SI ERREUR → SIGNUP
   if (error) {
-    const res = await supabase.auth.signUp({
+    const res = await db.auth.signUp({
       email,
       password
     });
@@ -98,7 +98,7 @@ async function auth() {
 // LOAD USER
 // ======================
 async function loadUser() {
-  const { data } = await supabase.auth.getUser();
+  const { data } = await db.auth.getUser();
 
   if (!data.user) {
     document.getElementById("status").innerText = "Non connecté";
@@ -107,7 +107,7 @@ async function loadUser() {
 
   await createProfile(data.user);
 
-  const { data: profile } = await supabase
+  const { data: profile } = await db
     .from("profiles")
     .select("*")
     .eq("id", data.user.id)
@@ -122,7 +122,7 @@ async function loadUser() {
 // LOGOUT
 // ======================
 async function logout() {
-  await supabase.auth.signOut();
+  await db.auth.signOut();
   location.reload();
 }
 
