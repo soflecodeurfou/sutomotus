@@ -192,7 +192,7 @@ function normalize(w) {
 }
 
 async function loadDico() {
-  const url = 'https://raw.githubusercontent.com/soflecodeurfou/sutomotus/main/Dico.txt';
+  const url = 'https://raw.githubusercontent.com/soflecodeurfou/sutomotus/refs/heads/main/Dico.txt';
   try {
     const r = await fetch(url);
     if (!r.ok) throw new Error('HTTP ' + r.status);
