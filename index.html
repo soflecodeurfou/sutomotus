@@ -31,8 +31,8 @@
 
 <script>
 const supabase = window.supabase.createClient(
-  "TON_URL_SUPABASE",
-  "TON_ANON_KEY"
+  "https://djolamqsceftrkqulldl.supabase.co",
+  "sb_publishable_rwC-DCZvgYXfRAb23izSbg_kwsiGzAt"
 );
 
 let user = null;
@@ -42,11 +42,17 @@ async function auth(){
   const email = document.getElementById("email").value;
   const pass = document.getElementById("pass").value;
 
-  let { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
+  let { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password: pass
+  });
 
   if(error){
-    // create account
-    let res = await supabase.auth.signUp({ email, password: pass });
+    let res = await supabase.auth.signUp({
+      email,
+      password: pass
+    });
+
     user = res.data.user;
 
     await supabase.from("profiles").insert({
@@ -116,9 +122,14 @@ async function loadFriends(){
   const list = document.getElementById("friends");
   list.innerHTML = "";
 
+  if(!data || data.length === 0){
+    list.innerHTML = "<li>Aucun ami</li>";
+    return;
+  }
+
   data.forEach(f => {
     const li = document.createElement("li");
-    li.innerText = f.profiles.username + " (" + f.status + ")";
+    li.innerText = f.profiles?.username + " (" + f.status + ")";
     list.appendChild(li);
   });
 }
