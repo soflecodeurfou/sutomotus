@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Supabase Auth Clean</title>
+<title>Supabase Auth FIX</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -15,7 +15,7 @@ button { padding:10px 15px; cursor:pointer; }
 
 <body>
 
-<h2>Connexion Supabase</h2>
+<h2>Auth Supabase</h2>
 
 <input id="email" placeholder="email"><br>
 <input id="password" type="password" placeholder="password"><br>
@@ -26,17 +26,14 @@ button { padding:10px 15px; cursor:pointer; }
 <h3 id="status">Non connecté</h3>
 
 <script>
-// ======================
-// SUPABASE INIT
-// ======================
-const db = window.supabase.createClient(
-  "https://djolamqsceftrkqulldl.supabase.co",
-  "sb_publishable_rwC-DCZvgYXfRAb23izSbg_kwsiGzAt"
-);
 
-// ======================
-// CREATE PROFILE
-// ======================
+// 🔥 IMPORTANT : utilise TA ANON KEY (pas service_role)
+const SUPABASE_URL = "https://djolamqsceftrkqulldl.supabase.co";
+const SUPABASE_KEY = "TON_ANON_KEY_ICI";
+
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ---------------- PROFILE ----------------
 async function createProfile(user) {
   if (!user) return;
 
@@ -54,36 +51,21 @@ async function createProfile(user) {
   }
 }
 
-// ======================
-// AUTH LOGIN / SIGNUP
-// ======================
+// ---------------- AUTH ----------------
 async function auth() {
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
 
-  if (!email || !password) {
-    alert("Remplis tout");
-    return;
-  }
+  if (!email || !password) return alert("Remplis tout");
 
-  // LOGIN
   let { data, error } = await db.auth.signInWithPassword({
     email,
     password
   });
 
-  // SI ERREUR → SIGNUP
   if (error) {
-    const res = await db.auth.signUp({
-      email,
-      password
-    });
-
-    if (res.error) {
-      alert(res.error.message);
-      return;
-    }
-
+    const res = await db.auth.signUp({ email, password });
+    if (res.error) return alert(res.error.message);
     data = res.data;
   }
 
@@ -94,9 +76,7 @@ async function auth() {
   loadUser();
 }
 
-// ======================
-// LOAD USER
-// ======================
+// ---------------- LOAD USER ----------------
 async function loadUser() {
   const { data } = await db.auth.getUser();
 
@@ -105,8 +85,6 @@ async function loadUser() {
     return;
   }
 
-  await createProfile(data.user);
-
   const { data: profile } = await db
     .from("profiles")
     .select("*")
@@ -114,19 +92,16 @@ async function loadUser() {
     .maybeSingle();
 
   document.getElementById("status").innerText =
-    "Connecté : " +
-    (profile?.username || data.user.email);
+    "Connecté : " + (profile?.username || data.user.email);
 }
 
-// ======================
-// LOGOUT
-// ======================
+// ---------------- LOGOUT ----------------
 async function logout() {
   await db.auth.signOut();
   location.reload();
 }
 
-// auto load
+// auto
 loadUser();
 
 </script>
